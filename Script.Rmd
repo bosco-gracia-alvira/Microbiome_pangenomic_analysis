@@ -1,0 +1,349 @@
+---
+title: "Script"
+author: "Bosco Gracia Alvira"
+date: "2022-08-30"
+output: html_document
+---
+
+In this script I will carry out the pan-genomic analysis. After assembling high-quality scaffolded genomes from the reads, we can complement the genome collection with sequences found in the databases.
+
+```{bash Creating the directories}
+
+cd ~/PhD/Pangenomic_analyses
+
+mkdir 00.Genomes
+mkdir 00.Genomes/GenBank
+GENOMES=~/PhD/Pangenomic_analyses/00.Genomes
+#mkdir 01.PyANI Don't create this directory because it will be created automatically when you run PyANI.
+mkdir 02.Anvio
+mkdir 04.PopCOGenT
+
+cp ~/PhD/Isolates_assembly/Pool_5??/08.Scaffolding/Scaffolded_genomes/* 00.Genomes/ #I copy the scaffolded genomes
+cp ~/PhD/Acetobacter_reference/Mapping_drosophila/results/06.Scaffolding/Scaffolds/* 00.Genomes/ #As well as the Drosophila obscura genomes
+```
+
+Netx, I will download the publicly available genomes that will be used in the analysis, for which I use the Edirect tool from NCBI (in the beginning I wanted to use ncbi-genome-download script, but it only works for assemblies, and the genomes found in McMullen et al. are categorised as "nucleotide", not "assembly"). 
+
+```{bash}
+mkdir tmp
+cd tmp
+
+awk -F'\t' '$6 == "McMullen" || $6 == "NCBI" {print "esearch -db assembly -query",$5,"< /dev/null | elink -target nuccore | efetch -format fasta >",$1".fa"}' ../Genomes_info.txt |\
+    while read cmd; do echo "$cmd"; eval "$cmd"; done
+
+mv * ../00.Genomes/
+cd ..
+rm -r tmp
+
+mkdir tmp
+cd tmp
+
+awk -F'\t' '$6 == "McMullen" || $6 == "NCBI" {print "esearch -db nuccore -query",$5,"< /dev/null | elink -target nuccore | efetch -format gb >",$1".gbff"}' ../Genomes_info.txt |\
+    while read cmd; do echo "$cmd"; eval "$cmd"; done
+
+mv * ../00.Genomes/GenBank
+cd ..
+rm -r tmp
+```
+
+
+########################################################################################################################
+########################################################################################################################
+########################################################################################################################
+
+Average Nucleotide Identity (ANI) is a metric that quantifies how similar two genomes are. Genomes with a pairwise ANI value above 95% are considered to belong to the same species. I am using ANI as a quick way to assess if there are clusters of closely related genomes in our collection. 
+
+conda activate pyani_env
+average_nucleotide_identity.py -v -i 00.Genomes -m ANIb -o 01.PyANI/ -g
+
+#ANI values are not very consistent, but the coverage values cluster the genomes by family; Acetobacteraceae and Lactobacillaceae. Therefore, the percentage of aligned genomic material is higher in genomes from the same family, even if this genomic material is later not identical.
+
+########################################################################################################################
+########################################################################################################################
+########################################################################################################################
+
+#https://merenlab.org/2016/11/08/pangenomics-v2/#creating-a-pangenome-with-functions
+#https://merenlab.org/2016/06/18/importing-functions/
+
+
+########################################################################################################################
+########################################################################################################################
+########################################################################################################################
+
+#The next step is carrying out the PopCOGenT analysis. I will cluster the genomes by families. For doing this I first copy them to the Vetlinux server:
+
+ACETOBACTERACEAE=($(awk -F'\t' 'BEGIN {ORS = " "} $8 ~ /Acetobacteraceae/ {print $1}' Genomes_info.txt))
+LACTOBACILLACEAE=($(awk -F'\t' 'BEGIN {ORS = " "} $8 ~ /Lactobacillaceae/ {print $1}' Genomes_info.txt))
+INDO=($(awk -F'\t' 'BEGIN {ORS = " "} $8 ~ /indonesiensis/ {print $1}' Genomes_info.txt))
+
+for i in ${ACETOBACTERACEAE};
+do scp 00.Genomes/${i}.fa vetlinux05@pgnsrv043.vu-wien.ac.at:~/Bosco/Genomes/Acetobacteraceae ;
+done
+
+for i in ${LACTOBACILLACEAE};
+do scp 00.Genomes/${i}.fa vetlinux05@pgnsrv043.vu-wien.ac.at:~/Bosco/Genomes/Lactobacillaceae ;
+done
+
+for i in ${INDO};
+do scp 00.Genomes/${i}.fa vetlinux05@pgnsrv043.vu-wien.ac.at:~/Bosco/Genomes/Indonesiensis ;
+done
+
+ssh vetlinux05@pgnsrv043.vu-wien.ac.at
+cd ~/Bosco/PopCOGenT/src/PopCOGenT/
+
+for i in $(ls *.fa);
+do mv $i.renamed.mugsy $i;
+done
+
+rm -r proc/ __pycache__/ *log infomap_out
+
+
+#export BASH_ENV=~/.bashrc
+#export MUGSY_INSTALL=~/.local/miniconda3/envs/PopCOGenT/bin
+
+source config_Aceto.sh
+source config_Lacto.sh
+source config_Indo.sh
+conda activate PopCOGenT
+source ${mugsy_env}
+
+python get_alignment_and_length_bias.py --genome_dir ${genome_dir} --genome_ext ${genome_ext} --alignment_dir ${alignment_dir} --mugsy_path ${mugsy_path} --mugsy_env ${mugsy_env} --base_name ${base_name} --final_output_dir ${final_output_dir} --num_threads ${num_threads} ${keep_alignments}
+
+python cluster.py --base_name ${base_name} --length_bias_file ${final_output_dir}/${base_name}.length_bias.txt --output_directory ${final_output_dir} --infomap_path ${infomap_path} ${single_cell}
+
+exit
+
+scp -r vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output 04.PopCOGenT/
+
+
+########################################################################################################################
+########################################################################################################################
+########################################################################################################################
+
+ACETOBACTER=($(awk -F'\t' 'BEGIN {ORS = " "} $8 ~ /Acetobacter / {print $1}' Genomes_info.txt))
+
+mkdir Acetobacter
+mkdir Acetobacter/00.Genomes/
+
+for i in $ACETOBACTER;
+do cp 00.Genomes/$i".fa" Acetobacter/00.Genomes/;
+done
+
+#Average Nucleotide Identity (ANI) is a metric that quantifies how similar two genomes are. Genomes with a pairwise ANI value above 95% are considered to belong to the same species. I am using ANI as a quick way to assess if there are clusters of closely related genomes in our collection. Our Acetobacter genomes do cluster by species.
+
+conda activate pyani_env
+average_nucleotide_identity.py -v -i Acetobacter/00.Genomes -m ANIb -o Acetobacter/01.PyANI/ -g
+
+########################################################################################################################
+########################################################################################################################
+########################################################################################################################
+
+conda activate anvio-7.1
+
+cd Acetobacter
+mkdir Acetobacter_indonesiensis
+cd Acetobacter_indonesiensis
+mkdir Genomes
+cd Genomes
+
+for genome in $(awk -F'\t' 'BEGIN {ORS = " "} $8 ~ /Acetobacter indonesiensis/ {print $1}' ../../../Genomes_info.txt)
+do
+
+  anvi-script-reformat-fasta $GENOMES/"$genome".fa \
+                             -o "$genome"_clean.fa \
+                             --prefix "$genome" \
+                             --simplify-names
+                             
+  prodigal -f gff \
+           -c \
+           -i "$genome"_clean.fa \
+           -o "$genome".gff
+done
+
+cat *_clean.fa > all_genomes.fa
+
+#Here we are going to parse the gff files from prodigal to match the formatting for the anvi’o external gene calls file. This is a tab-delimited file (with a header) with 9 columns: “gene_callers_id”, “contig”, “start”, “stop”, “direction”, “partial”, “call_type.tmp“, “source”, and “version”. Here is one way to build those last 8 columns in the fna genomes:
+
+#getting all gene-call lines only
+grep -hv "#" *.gff > all_new_genomes.gff.tmp
+
+#building columns for external gene calls file
+cut -f1 all_new_genomes.gff.tmp > contig.tmp
+
+#subtracting 1 to match the 0-based counting used in
+#anvi'o (it's closed end, so don't need to modify stops)
+cut -f4 all_new_genomes.gff.tmp | awk '{print $1-1}' > start.tmp
+cut -f5 all_new_genomes.gff.tmp > stop.tmp
+cut -f7 all_new_genomes.gff.tmp > initial_direction.tmp
+
+#determining the direction of the gene call
+for i in $(cat initial_direction.tmp)
+do
+    if [ $i = + ]
+    then
+        echo "f"
+    else
+        echo "r"
+    fi
+done > direction.tmp
+
+#because we specified the `-c` option when running prodigal,
+#we have no partial genes
+for i in $(cat direction.tmp); do echo "0"; done > partial.tmp
+for i in $(cat direction.tmp); do echo "prodigal"; done > source.tmp
+for i in $(cat direction.tmp); do echo "1"; done > call_type.tmp
+for i in $(cat direction.tmp); do echo "v2.6.3"; done > version.tmp
+
+#Gene callers ids are unique numbers for each gene call. I create them by printing a sequence from 1 to the number of rows.
+for i in $(seq 1 $(wc -l direction.tmp | awk '{print $1}'))
+do
+    echo $i
+done > gene_callers_id.tmp
+
+#sticking all together
+paste gene_callers_id.tmp \
+        contig.tmp \
+        start.tmp \
+        stop.tmp \
+        direction.tmp \
+        partial.tmp \
+        call_type.tmp \
+        source.tmp \
+        version.tmp > adding_gene_calls.tmp
+
+#I print the headers and concatenate to the data
+printf 'gene_callers_id\tcontig\tstart\tstop\tdirection\tpartial\tcall_type\tsource\tversion\n' > header.tmp
+cat header.tmp adding_gene_calls.tmp > all_genomes_gene_calls.tsv 
+
+# deleting intermediate files
+rm *.tmp
+
+cd ..
+
+anvi-gen-contigs-database -f Genomes/all_genomes.fa \
+        -o contigs.db \
+        -n Indonesiensis_genomes \
+        --external-gene-calls \
+        Genomes/all_genomes_gene_calls.tsv \
+        --ignore-internal-stop-codons \
+        --split-length -1
+
+anvi-run-hmms -c contigs.db --num-threads 10
+anvi-run-pfams -c contigs.db --num-threads 10 
+anvi-run-ncbi-cogs -c contigs.db --num-threads 10
+anvi-run-kegg-kofams -c contigs.db --num-threads 10
+
+#Now we want EggNOG mapper
+
+export EGGNOG_DATA_DIR=~/PhD/db/EggNOG/
+mkdir Emapper
+anvi-get-sequences-for-gene-calls -c contigs.db \
+                                    --get-aa-sequences \
+                                    -o amino-acid-sequences.fa
+
+conda activate emapper-2.1
+emapper.py -i amino-acid-sequences.fa -o amino-acid-sequences.fa --output_dir Emapper --cpu 10
+
+#Anvio has told me that I need to add a "g" as prefix before each gene_id (god knows why...) if I want to parse the annotations. I use this if statement with AWK to modify the gene_ids without touching the rows that start with #, that have other information.
+awk '{if ($1 ~ /#/) print $0; else print "g"$0}' Emapper/amino-acid-sequences.fa.emapper.annotations > amino-acid-sequences.fa.emapper.annotations
+conda deactivate
+anvi-script-run-eggnog-mapper -c contigs.db \
+                              --annotation amino-acid-sequences.fa.emapper.annotations \
+                              --use-version 2.1.6                                
+
+#The contigs.db is literally a database of contigs. I need to import a 2-column tab-delimited file determining which contig belongs to which bin by looping through the fasta files:
+cd Genomes
+for genome in $(ls *_clean.fa | sed 's/_clean.fa//')
+do 
+  grep ">" "$genome"_clean.fa | cut -f1 -d " " | tr -d ">" > "$genome"_contigs.tmp
+  for contig in $(cat "$genome"_contigs.tmp)
+  do
+    echo "$genome"
+  done > "$genome"_name.tmp
+  paste "$genome"_contigs.tmp "$genome"_name.tmp > "$genome"_for_cat.tmp
+done
+
+#catting all together and removing intermediate files:
+cat *_for_cat.tmp > ../collection.tsv && rm *.tmp
+cd ..
+#and for a sanity check we can make sure our file is the right size; the contigs number should be the same in all_genomes.fa and in our new contig-bin collection:
+grep -c ">" Genomes/all_genomes.fa
+wc -l collection.tsv
+
+#and check out our genome/bin names:
+cut -f2 collection.tsv | uniq -c | wc -l
+
+#We will need a blank profile to store our collection
+anvi-profile -c contigs.db \
+             -o profile \
+             -S profile \
+             --blank-profile \
+             --min-contig-length 0 \
+             --skip-hierarchical-clustering
+
+#now we can import our collection
+anvi-import-collection collection.tsv \
+                       -c contigs.db \
+                       -p profile/PROFILE.db \
+                       -C Indonesiensis_genomes \
+                       --contigs-mode
+
+#I create the internal genome storage file, that is required for the pangenomic analysis (see pangenomic-workflow tutorial). It is tab-delimited file with 5 columns. I has the following headers: “name”, “bin_id”, “collection_id”, “profile_db_path”, and “contigs_db_path”. $PWD is the current location, that is where I want to carry out the pangenomic analysis. 
+
+echo -e "name\tbin_id\tcollection_id\tprofile_db_path\tcontigs_db_path" > header.tmp
+
+cut -f2 collection.tsv | uniq > name_and_bin_id.tmp
+
+for i in $(cat name_and_bin_id.tmp); do echo "Indonesiensis_genomes"; done > collection_id.tmp
+
+for i in $(cat name_and_bin_id.tmp); do echo "$PWD/profile/PROFILE.db"; done > profile_db_path.tmp
+
+for i in $(cat name_and_bin_id.tmp); do echo "$PWD/contigs.db"; done > contigs_db_path.tmp
+
+paste name_and_bin_id.tmp name_and_bin_id.tmp collection_id.tmp profile_db_path.tmp contigs_db_path.tmp > body.tmp
+
+cat header.tmp body.tmp > internal_genomes.tsv && rm *.tmp
+
+#The last step is running the pangenomic analysis:
+anvi-gen-genomes-storage -i internal_genomes.tsv \
+                         -o Indonesiensis-GENOMES.db
+
+anvi-pan-genome -g Indonesiensis-GENOMES.db \
+-n Indonesiensis-PAN \
+--distance euclidean \
+--linkage ward \
+--use-ncbi-blast \
+--mcl-inflation 10 \
+--num-threads 10
+
+#We can compute the Average Nucleotide Identity because, why not?
+anvi-compute-genome-similarity --internal-genomes internal_genomes.tsv \
+                               --program pyANI \
+                               --output-dir ANI \
+                               --num-threads 10 \
+                               --pan-db Indonesiensis-PAN/Indonesiensis-PAN-PAN.db
+
+#Now we can just display the result, although this is just the tip of the iceberg. 
+anvi-display-pan -g Indonesiensis-GENOMES.db \
+                 -p Indonesiensis-PAN/Indonesiensis-PAN-PAN.db
+
+
+#Phylogenomics
+
+anvi-get-sequences-for-gene-clusters -p Indonesiensis-PAN/Indonesiensis-PAN-PAN.db \
+                                       -g Indonesiensis-GENOMES.db \
+                                       -C default -b Conserved \
+                                       --concatenate-gene-clusters \
+                                       -o SCG_Core.fa
+
+sed '/^>/s/ .*$//' SCG_Core.fa > SCG2.fa
+
+
+anvi-gen-phylogenomic-tree -f SCG2.fa \
+                           -o phylogenomic-tree.txt
+
+anvi-interactive -p phylogenomic-profile.db \
+                 -t phylogenomic-tree.txt \
+                 --title "Phylogenomics of Acetobacter indonesiensis" \
+                 --manual
+
