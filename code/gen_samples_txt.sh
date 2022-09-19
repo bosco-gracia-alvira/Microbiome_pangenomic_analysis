@@ -4,7 +4,7 @@ cd ~/PhD
 
 echo 'Which bacteria do you want to analyse? Type it in the terminal with the format: "Genus_species"'
 read
-REPLY=Acetobacter_malorum
+
 SPECIES=$(echo $REPLY | sed 's/_/ /')
 
 mkdir Microbiome_pangenomic_analysis/data/$REPLY
@@ -36,7 +36,7 @@ cut -d "_" -f2- $TEMP/body.tmp | sort | awk 'FNR==1{
          END{
               for(i in A)
                    print i,A[i],B[i]
-            }' >> body_merged.tmp # This strange awk command that I don't fully understand merges together rows by sample name and merges together the location of the r1 and r2 with commas.
+            }' | tr " " "\t" >> $TEMP/body_merged.tmp # This strange awk command that I don't fully understand merges together rows by sample name and merges together the location of the r1 and r2 with commas.
 
 cat $TEMP/header.tmp $TEMP/body_merged.tmp > $WORKDIR/samples-txt
 
