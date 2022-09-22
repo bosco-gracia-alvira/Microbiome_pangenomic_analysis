@@ -1,0 +1,85 @@
+{
+    "output_dirs": {
+        "CONTIGS_DIR": "03_CONTIGS",
+        "MAPPING_DIR": "04_MAPPING",
+        "PROFILE_DIR": "05_ANVIO_PROFILE",
+        "MERGE_DIR": "06_MERGED",
+        "LOGS_DIR": "00_LOGS"
+    },
+    "workflow_name": "metagenomics",
+    "config_version": "2",
+    "samples_txt": "samples-txt",
+    "fasta_txt": "fasta-txt",
+    "references_mode": true,
+    "iu_filter_quality_minoche": {
+        "run": true,
+        "--ignore-deflines": true,
+        "--visualize-quality-curves": "",
+        "--limit-num-pairs": "",
+        "--print-qual-scores": "",
+        "--store-read-fate": "",
+        "threads": 1
+    },
+    "gzip_fastqs": {
+        "run": true,
+        "threads": 1
+    },
+    "anvi_gen_contigs_database": {
+        "--project-name": "{group}",
+        "--description": "",
+        "--skip-gene-calling": "",
+        "--ignore-internal-stop-codons": true,
+        "--skip-mindful-splitting": "",
+        "--contigs-fasta": "",
+        "--split-length": "",
+        "--kmer-size": "",
+        "--skip-predict-frame": "",
+        "--prodigal-translation-table": "",
+        "threads": 1
+    },
+    "bowtie_build": {
+        "additional_params": "",
+        "threads": 4
+    },
+    "anvi_init_bam": {
+        "threads": 2
+    },
+    "bowtie": {
+        "additional_params": "--no-unal",
+        "threads": 2
+    },
+    "samtools_view": {
+        "additional_params": "-F 4",
+        "threads": 2
+    },
+    "anvi_profile": {
+        "threads": 2,
+        "--sample-name": "{sample}",
+        "--overwrite-output-destinations": true,
+        "--report-variability-full": "",
+        "--skip-SNV-profiling": "",
+        "--profile-SCVs": true,
+        "--description": "",
+        "--skip-hierarchical-clustering": "",
+        "--distance": "",
+        "--linkage": "",
+        "--min-contig-length": "",
+        "--min-mean-coverage": "",
+        "--min-coverage-for-variability": "",
+        "--cluster-contigs": "",
+        "--contigs-of-interest": "",
+        "--queue-size": "",
+        "--write-buffer-size-per-thread": 2000,
+        "--max-contig-length": ""
+    },
+    "anvi_merge": {
+        "--sample-name": "{group}",
+        "--overwrite-output-destinations": true,
+        "--description": "",
+        "--skip-hierarchical-clustering": "",
+        "--enforce-hierarchical-clustering": "",
+        "--distance": "",
+        "--linkage": "",
+        "threads": 10
+    }
+}
