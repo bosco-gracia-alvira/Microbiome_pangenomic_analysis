@@ -16,7 +16,7 @@ then
 fi
 
 mkdir Microbiome_pangenomic_analysis/data/temp/
-WORKDIR=Microbiome_pangenomic_analysis/data/$REPLY
+WORKDIR=~/PhD/Microbiome_pangenomic_analysis/data/$REPLY
 TEMP=Microbiome_pangenomic_analysis/data/temp
 
 cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
@@ -49,7 +49,7 @@ ragtag.py merge $TEMP/$ISOLATE.fa $TEMP/multiple_*/*.agp -o $TEMP/final_multiple
 
 cp $TEMP/final_multiple/ragtag.merge.fasta $WORKDIR/reference.fa
 
-echo -e "name\tpath\n$ISOLATE\t$WORKDIR/reference.fa" > $WORKDIR/fasta-txt
+echo -e "name\tpath\n$(echo $ISOLATE | cut -f2- -d "_")\t$WORKDIR/reference.fa" > $WORKDIR/fasta-txt
 
 rm -r $TEMP
 
