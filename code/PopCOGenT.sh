@@ -1,39 +1,31 @@
 #!/bin/bash
 
+cd ~/PhD
 
+echo 'Which bacteria do you want to analyse? Type it in the terminal with the format: "Genus_species"'
+read
 
-ACETOBACTERACEAE=($(awk -F'\t' 'BEGIN {ORS = " "} $8 ~ /Acetobacteraceae/ {print $1}' Genomes_info.txt))
-LACTOBACILLACEAE=($(awk -F'\t' 'BEGIN {ORS = " "} $8 ~ /Lactobacillaceae/ {print $1}' Genomes_info.txt))
-INDO=($(awk -F'\t' 'BEGIN {ORS = " "} $8 ~ /indonesiensis/ {print $1}' Genomes_info.txt))
+SPECIES=$(echo $REPLY | sed 's/_/ /')
 
-for i in ${ACETOBACTERACEAE};
-do scp 00.Genomes/${i}.fa vetlinux05@pgnsrv043.vu-wien.ac.at:~/Bosco/Genomes/Acetobacteraceae ;
-done
+mkdir Microbiome_pangenomic_analysis/data/temp/
+WORKDIR=~/PhD/Microbiome_pangenomic_analysis/data/$REPLY
+TEMP=Microbiome_pangenomic_analysis/data/temp
 
-for i in ${LACTOBACILLACEAE};
-do scp 00.Genomes/${i}.fa vetlinux05@pgnsrv043.vu-wien.ac.at:~/Bosco/Genomes/Lactobacillaceae ;
-done
+cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
 
-for i in ${INDO};
-do scp 00.Genomes/${i}.fa vetlinux05@pgnsrv043.vu-wien.ac.at:~/Bosco/Genomes/Indonesiensis ;
+SAMPLES=($(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' $TEMP/taxonomy.tsv))
+
+for i in ${SAMPLES[@]};
+do cp Isolates_assembly/Pool_$(echo $i | cut -f1 -d "_")/07.GTDB-Tk/Genomes/$i.fa vetlinux05@pgnsrv043.vu-wien.ac.at:~/Bosco/Genomes/temp;
 done
 
 ssh vetlinux05@pgnsrv043.vu-wien.ac.at
 cd ~/Bosco/PopCOGenT/src/PopCOGenT/
 
-for i in $(ls *.fa);
-do mv $i.renamed.mugsy $i;
-done
-
-rm -r proc/ __pycache__/ *log infomap_out
-
-
 #export BASH_ENV=~/.bashrc
 #export MUGSY_INSTALL=~/.local/miniconda3/envs/PopCOGenT/bin
 
-source config_Aceto.sh
-source config_Lacto.sh
-source config_Indo.sh
+source config.sh
 
 eval "$(conda shell.bash hook)"
 conda activate PopCOGenT
@@ -43,6 +35,9 @@ python get_alignment_and_length_bias.py --genome_dir ${genome_dir} --genome_ext 
 
 python cluster.py --base_name ${base_name} --length_bias_file ${final_output_dir}/${base_name}.length_bias.txt --output_directory ${final_output_dir} --infomap_path ${infomap_path} ${single_cell}
 
+rm ../../../Genomes/tmp/*
+rm -r proc/ __pycache__/ *log infomap_out
 exit
 
-scp -r vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output 04.PopCOGenT/
+#rsync -avz --remove-source-files -e ssh vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output/* $WORKDIR
+#scp -r vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output/* $WORKDIR
