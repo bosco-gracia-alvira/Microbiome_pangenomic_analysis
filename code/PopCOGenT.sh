@@ -7,19 +7,19 @@ read
 
 SPECIES=$(echo $REPLY | sed 's/_/ /')
 
-mkdir Microbiome_pangenomic_analysis/data/temp/
+mkdir Microbiome_pangenomic_analysis/data/$REPLY/temp
 WORKDIR=~/PhD/Microbiome_pangenomic_analysis/data/$REPLY
-TEMP=Microbiome_pangenomic_analysis/data/temp
+TEMP=Microbiome_pangenomic_analysis/data/$REPLY/temp
 
 cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
 
 SAMPLES=($(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' $TEMP/taxonomy.tsv))
 
 for i in ${SAMPLES[@]};
-do cp Isolates_assembly/Pool_$(echo $i | cut -f1 -d "_")/07.GTDB-Tk/Genomes/$i.fa vetlinux05@pgnsrv043.vu-wien.ac.at:~/Bosco/Genomes/temp;
+do scp Isolates_assembly/Pool_$(echo $i | cut -f1 -d "_")/07.GTDB-Tk/Genomes/$i.fa vetlinux05@pgnsrv043.vu-wien.ac.at:~/Bosco/Genomes/temp;
 done
 
-ssh vetlinux05@pgnsrv043.vu-wien.ac.at
+(cat <<FOO
 cd ~/Bosco/PopCOGenT/src/PopCOGenT/
 
 #export BASH_ENV=~/.bashrc
@@ -37,7 +37,10 @@ python cluster.py --base_name ${base_name} --length_bias_file ${final_output_dir
 
 rm ../../../Genomes/tmp/*
 rm -r proc/ __pycache__/ *log infomap_out
-exit
+FOO
+)
+| ssh vetlinux05@pgnsrv043.vu-wien.ac.at "bash"
+
 
 #rsync -avz --remove-source-files -e ssh vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output/* $WORKDIR
-#scp -r vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output/* $WORKDIR
+scp -r vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output/* $WORKDIR
