@@ -50,6 +50,7 @@ anvi-gen-variability-profile -c 03_CONTIGS/$CONTIG-contigs.db \
                              --kiefl-mode \
                              -o $REPLY-SAAVs.txt
 
-awk 'NR > 1 && $77!=0 && $78==1 {print $0}' $REPLY-SCVs.txt > filtered-SCVs.tsv
 
-awk 'NR > 1 && $34!=0 && $35==1 {print $0}' $REPLY-SAAVs.txt > filtered-SAAVs.tsv
+awk '{ if ((NR == 1) || ($73!=$74)) { print } }' $REPLY-SCVs.txt > consensus-SCVs.tsv
+
+awk '{ if ((NR == 1) || ($30!=$31)) { print } }' $REPLY-SAAVs.txt > consensus-SAAVs.tsv
