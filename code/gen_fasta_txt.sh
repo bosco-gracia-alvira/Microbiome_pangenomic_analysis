@@ -22,14 +22,21 @@ TEMP=Microbiome_pangenomic_analysis/data/temp
 cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
 SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' $TEMP/taxonomy.tsv | sort)
 
-ncbi-genome-download bacteria \
-    -g "$SPECIES" \
-    -s refseq \
-    -F fasta \
-    -l "all"\
-    -P \
-    --flat-output \
-    -o $TEMP 
+SPECIES="Lactiplantibacillus plantarum"
+LEVELS=(complete chromosome scaffold)
+n=1
+while [[ $(basename -a temp/*.fna.gz | wc -l)==0 || $n -lt 5 ]]
+do  ncbi-genome-download bacteria \
+        -g "$SPECIES" \
+        -s refseq \
+        -F fasta \
+        -l $LEVELS[$n]\
+        -P \
+        --flat-output \
+        -o temp
+    ((n++))
+done
+
 gunzip $TEMP/*.gz
 
 echo -e "We have downloaded "$(basename -a $TEMP/*.fna | wc -l)" genomes from the desired species"
