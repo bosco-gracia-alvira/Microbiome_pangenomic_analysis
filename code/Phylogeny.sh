@@ -1,26 +1,54 @@
 #!/bin/bash
 
-#echo 'Which species do you want to analyse with Anvio? Type in the terminal the species with the format: "Genus_species"'
-#read
-REPLY="Leuconostoc_pseudomesenteroides"
+echo 'Which species do you want to analyse with Anvio? Type in the terminal the species with the format: "Genus_species"'
+read
+
 SPECIES=$(echo $REPLY | sed 's/_/ /')
 cd ~/PhD
-mkdir Microbiome_pangenomic_analysis/data/temp/
+mkdir -p Microbiome_pangenomic_analysis/data/temp/genomes
 WORKDIR=~/PhD/Microbiome_pangenomic_analysis/data/$REPLY
 TEMP=Microbiome_pangenomic_analysis/data/temp
-
+mkdir $TEMP/snp-sites
+mkdir $TEMP/raxml
 cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
 SAMPLES=($(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' $TEMP/taxonomy.tsv | tr "\n" " "))
+eval "$(conda shell.bash hook)"
+conda activate
+ncbi-genome-download bacteria \
+        -g "$SPECIES" \
+        -s refseq \
+        -R "reference,representative" \
+        -F fasta \
+        -l all \
+        -P \
+        --flat-output \
+        -o $TEMP/genomes
+
+gunzip $TEMP/genomes/*.gz
+mv $TEMP/genomes/*.fna $TEMP/genomes/outgroup.fa
+
+prokka  --outdir $TEMP/prokka \
+        --force \
+        --prefix outgroup \
+        $TEMP/genomes/outgroup.fa  
 
 for i in ${SAMPLES[@]};
-do cp Isolates_assembly/Pool_$(echo $i | cut -f1 -d "_")/07.GTDB-Tk/Genomes/$i.fa $TEMP;
+do  
+    cp Isolates_assembly/Pool_$(echo $i | cut -f1 -d "_")/07.GTDB-Tk/Genomes/$i.fa $TEMP/genomes;
+    
+    prokka  --outdir $TEMP/prokka \
+            --force \
+            --prefix $i \
+            $TEMP/genomes/$i.fa;
 done
 
-prokka #Extraction of coding sequences for each isolate
+roary -v -e --mafft  -f $TEMP/roary $TEMP/prokka/*.gff
+snp-sites -mvp -o $TEMP/snp-sites/$REPLY $TEMP/roary/*.aln
+#raxml-
 
-roary #Pan genome and alignment of single copy core genes
+mv $TEMP/snp-sites $WORKDIR/
+mv $TEMP/roary $WORKDIR/
+rm -r $TEMP
 
-snp-sites #Reduction of the alignment only to SNP positions
 
-raxml or mrbayes #Construction of the phylogenetic tree
-
+#raxml or mrbayes #Construction of the phylogenetic tree
