@@ -42,5 +42,5 @@ rm -r proc/ __pycache__/ *log infomap_out
 FOO
 
 rsync -avz --remove-source-files -e ssh vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output/$REPLY"*" $WORKDIR
-
+rm -r $TEMP
 #scp -r vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output/* $WORKDIR
