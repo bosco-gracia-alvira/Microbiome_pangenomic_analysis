@@ -20,7 +20,7 @@ do scp Isolates_assembly/Pool_$(echo $i | cut -f1 -d "_")/07.GTDB-Tk/Genomes/$i.
 done
 
 ssh vetlinux05@pgnsrv043.vu-wien.ac.at << FOO
-#!/bin/bash
+#!/usr/bin/bash
 REPLY=$REPLY
 cd ~/Bosco/PopCOGenT/src/PopCOGenT/
 
@@ -37,10 +37,9 @@ python get_alignment_and_length_bias.py --genome_dir ${genome_dir} --genome_ext 
 
 python cluster.py --base_name ${base_name} --length_bias_file ${final_output_dir}/${base_name}.length_bias.txt --output_directory ${final_output_dir} --infomap_path ${infomap_path} ${single_cell}
 
-#rm Genomes/*
+rm Genomes/*
 rm -r proc/ __pycache__/ *log infomap_out
 FOO
 
 rsync -avz --remove-source-files -e ssh vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output/$REPLY"*" $WORKDIR
 rm -r $TEMP
-#scp -r vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output/* $WORKDIR
