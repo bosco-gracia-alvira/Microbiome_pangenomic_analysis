@@ -16,7 +16,7 @@ cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
 SAMPLES=($(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' $TEMP/taxonomy.tsv))
 
 for i in ${SAMPLES[@]};
-do scp Isolates_assembly/Pool_$(echo $i | cut -f1 -d "_")/07.GTDB-Tk/Genomes/$i.fa vetlinux05@pgnsrv043.vu-wien.ac.at:~/Bosco/Genomes/temp;
+do scp Isolates_assembly/Pool_$(echo $i | cut -f1 -d "_")/07.GTDB-Tk/Genomes/$i.fa vetlinux05@pgnsrv043.vu-wien.ac.at:~/Bosco/PopCOGenT/src/PopCOGenT/Genomes/;
 done
 
 ssh vetlinux05@pgnsrv043.vu-wien.ac.at << FOO
