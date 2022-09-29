@@ -12,25 +12,33 @@ mkdir $TEMP/snp-sites
 mkdir $TEMP/raxml
 cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
 SAMPLES=($(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' $TEMP/taxonomy.tsv | tr "\n" " "))
-eval "$(conda shell.bash hook)"
-conda activate
-ncbi-genome-download bacteria \
-        -g "$SPECIES" \
-        -s refseq \
-        -R "reference,representative" \
-        -F fasta \
-        -l all \
-        -P \
-        --flat-output \
-        -o $TEMP/genomes
 
-gunzip $TEMP/genomes/*.gz
-mv $TEMP/genomes/*.fna $TEMP/genomes/outgroup.fa
+echo 'Would you like to include a representative genome as an outgroup in your analysis? Type yes or no.'
+read OUTGROUP
 
-prokka  --outdir $TEMP/prokka \
-        --force \
-        --prefix outgroup \
-        $TEMP/genomes/outgroup.fa  
+if [[ $OUTGROUP=="yes" ]]
+then
+        eval "$(conda shell.bash hook)"
+        conda activate
+        ncbi-genome-download bacteria \
+                -g "$SPECIES" \
+                -s refseq \
+                -R "reference,representative" \
+                -F fasta \
+                -l all \
+                -P \
+                --flat-output \
+                -o $TEMP/genomes
+
+        gunzip $TEMP/genomes/*.gz
+        mv $TEMP/genomes/*.fna $TEMP/genomes/outgroup.fa
+
+        prokka  --outdir $TEMP/prokka \
+                --force \
+                --prefix outgroup \
+                $TEMP/genomes/outgroup.fa 
+fi
+ 
 
 for i in ${SAMPLES[@]};
 do  
@@ -42,13 +50,12 @@ do
             $TEMP/genomes/$i.fa;
 done
 
-roary -v -e --mafft  -f $TEMP/roary $TEMP/prokka/*.gff
+roary -v -p 8 -e --mafft -f $TEMP/roary $TEMP/prokka/*.gff
 snp-sites -mvp -o $TEMP/snp-sites/$REPLY $TEMP/roary/*.aln
 #raxml-
 
 mv $TEMP/snp-sites $WORKDIR/
 mv $TEMP/roary $WORKDIR/
 rm -r $TEMP
-
 
 #raxml or mrbayes #Construction of the phylogenetic tree
