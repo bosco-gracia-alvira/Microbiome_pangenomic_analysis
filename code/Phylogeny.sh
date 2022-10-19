@@ -1,7 +1,12 @@
 #!/bin/bash
 
-echo 'Which species do you want to analyse with Anvio? Type in the terminal the species with the format: "Genus_species"'
+echo 'For which species do you want to build a phylogenetic tree? Type in the terminal the species with the format: "Genus_species"'
 read
+
+if [[ ! -d Microbiome_pangenomic_analysis/data/$REPLY ]]
+then
+    mkdir Microbiome_pangenomic_analysis/data/$REPLY
+fi
 
 SPECIES=$(echo $REPLY | sed 's/_/ /')
 cd ~/PhD
@@ -16,8 +21,9 @@ SAMPLES=($(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' $TEMP/taxonomy.tsv | 
 echo 'Would you like to include a representative genome as an outgroup in your analysis? Type yes or no.'
 read OUTGROUP
 
-if [[ $OUTGROUP=="yes" ]]
+if [[ $OUTGROUP = yes ]]
 then
+        OUT="ref"
         eval "$(conda shell.bash hook)"
         conda activate
         ncbi-genome-download bacteria \
@@ -37,6 +43,8 @@ then
                 --force \
                 --prefix outgroup \
                 $TEMP/genomes/outgroup.fa 
+else
+        OUT="noref"
 fi
  
 
@@ -52,10 +60,10 @@ done
 
 roary -v -p 8 -e --mafft -f $TEMP/roary $TEMP/prokka/*.gff
 snp-sites -mvp -o $TEMP/snp-sites/$REPLY $TEMP/roary/*.aln
-#raxml-
 
-mv $TEMP/snp-sites $WORKDIR/
-mv $TEMP/roary $WORKDIR/
+mkdir $WORKDIR/Phylogeny_$OUT
+mv $TEMP/snp-sites $WORKDIR/Phylogeny_$OUT/
+mv $TEMP/roary $WORKDIR/Phylogeny_$OUT/
 rm -r $TEMP
 
 #raxml or mrbayes #Construction of the phylogenetic tree
