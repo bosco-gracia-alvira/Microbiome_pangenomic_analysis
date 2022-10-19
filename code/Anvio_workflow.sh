@@ -25,7 +25,7 @@ eval "$(conda shell.bash hook)"
 conda activate anvio-7.1
 
 anvi-run-workflow -w metagenomics \
-        -c ../../code/config.json
+        -c ../../../code/config.json
 
 anvi-run-pfams -c 03_CONTIGS/$CONTIG-contigs.db -T 4
 anvi-run-ncbi-cogs -c 03_CONTIGS/$CONTIG-contigs.db -T 4
