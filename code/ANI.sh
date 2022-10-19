@@ -28,6 +28,11 @@ eval "$(conda shell.bash hook)"
 conda activate pyani_env
 
 average_nucleotide_identity.py -v -i $TEMP/genomes -m ANIb -o $TEMP/ANI -g
-mv $TEMP/ANI/ANIb_percentage_identity.png $WORKDIR
 
+if [[ ! -d $WORKDIR/ANI ]]
+then
+    mkdir $WORKDIR/ANI
+fi
+
+mv $TEMP/ANI/* $WORKDIR/ANI/
 rm -r $TEMP
