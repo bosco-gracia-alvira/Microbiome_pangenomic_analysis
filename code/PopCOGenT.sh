@@ -52,4 +52,6 @@ then
 fi
 
 rsync -avz --remove-source-files -e ssh vetlinux05@pgnsrv043.vu-wien.ac.at:/home/vetlinux05/Bosco/PopCOGenT/src/PopCOGenT/output/$REPLY"*" $WORKDIR/PopCOGenT/
+mv $WORKDIR/PopCOGenT/${REPLY}_*.txt.cluster.tab.txt $WORKDIR/PopCOGenT/${REPLY}.cluster.tsv
+mv $WORKDIR/PopCOGenT/${REPLY}_*.txt.unclust.graphml $WORKDIR/PopCOGenT/${REPLY}.unclust.graphml
 rm -r $TEMP
