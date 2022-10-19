@@ -7,13 +7,13 @@ read
 
 SPECIES=$(echo $REPLY | sed 's/_/ /')
 
-if [[ ! -d Microbiome_pangenomic_analysis/data/$REPLY ]]
+if [[ ! -d Microbiome_pangenomic_analysis/data/$REPLY/Anvio ]]
 then
-    mkdir Microbiome_pangenomic_analysis/data/$REPLY
+    mkdir Microbiome_pangenomic_analysis/data/$REPLY/Anvio
 fi
 mkdir Microbiome_pangenomic_analysis/data/temp
 
-WORKDIR=Microbiome_pangenomic_analysis/data/$REPLY
+WORKDIR=Microbiome_pangenomic_analysis/data/$REPLY/Anvio
 TEMP=Microbiome_pangenomic_analysis/data/temp
 
 cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
@@ -24,7 +24,7 @@ SAMPLES=($(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' $TEMP/taxonomy.tsv | 
 echo -e 'sample\tr1\tr2' > $TEMP/header.tmp
 touch $TEMP/body.tmp
 for i in ${SAMPLES[@]};
-do  awk -F "," -v i="$i" '$2==i {print $2,"../../../Isolates_assembly/Pool_"substr($2,1,3)"/02.Rm_adapters/fastq_clean/"$1".clean_1.fq.gz","../../../Isolates_assembly/Pool_"substr($2,1,3)"/02.Rm_adapters/fastq_clean/"$1".clean_2.fq.gz"}' $TEMP/names.csv >> $TEMP/body.tmp;
+do  awk -F "," -v i="$i" '$2==i {print $2,"../../../../Isolates_assembly/Pool_"substr($2,1,3)"/02.Rm_adapters/fastq_clean/"$1".clean_1.fq.gz","../../../../Isolates_assembly/Pool_"substr($2,1,3)"/02.Rm_adapters/fastq_clean/"$1".clean_2.fq.gz"}' $TEMP/names.csv >> $TEMP/body.tmp;
 done
 cut -d "_" -f2- $TEMP/body.tmp | sort | awk 'FNR==1{
               print

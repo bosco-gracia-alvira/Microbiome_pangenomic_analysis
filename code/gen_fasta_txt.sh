@@ -9,14 +9,14 @@ read
 
 SPECIES=$(echo $REPLY | sed 's/_/ /')
 
-if [[ ! -f Microbiome_pangenomic_analysis/data/$REPLY/samples-txt ]]
+if [[ ! -f Microbiome_pangenomic_analysis/data/$REPLY/Anvio/samples-txt ]]
 then
     echo 'You might want to run gen_samples_txt.sh first :/';
     exit
 fi
 
 mkdir Microbiome_pangenomic_analysis/data/temp/
-WORKDIR=~/PhD/Microbiome_pangenomic_analysis/data/$REPLY
+WORKDIR=~/PhD/Microbiome_pangenomic_analysis/data/$REPLY/Anvio/
 TEMP=Microbiome_pangenomic_analysis/data/temp
 
 cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv

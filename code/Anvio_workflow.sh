@@ -3,21 +3,21 @@
 echo 'Which species do you want to analyse with Anvio? Type in the terminal the species with the format: "Genus_species"'
 read
 
-if [[ ! -d ~/PhD/Microbiome_pangenomic_analysis/data/$REPLY ]]
+if [[ ! -d ~/PhD/Microbiome_pangenomic_analysis/data/$REPLY/Anvio ]]
 then
         echo -e "The species $REPLY is not availabe :(";
         echo -e "Maybe you have forgotten to run gen_samples_txt.sh"
         exit
 fi
 
-if [[ ! -f ~/PhD/Microbiome_pangenomic_analysis/data/$REPLY/fasta-txt ]]
+if [[ ! -f ~/PhD/Microbiome_pangenomic_analysis/data/$REPLY/Anvio/fasta-txt ]]
 then
         echo -e "The species $REPLY is not availabe :(";
         echo -e "Maybe you have forgotten to run gen_fasta_txt.sh"
         exit
 fi
 
-cd ~/PhD/Microbiome_pangenomic_analysis/data/$REPLY
+cd ~/PhD/Microbiome_pangenomic_analysis/data/$REPLY/Anvio
 CONTIG=$(cat fasta-txt | awk '!/name/ {print $1}')
 
 

@@ -10,5 +10,5 @@ CONTIG=$(cat $REPLY/fasta-txt | awk '!/name/ {print $1}')
 eval "$(conda shell.bash hook)"
 conda activate anvio-7.1
 
-anvi-interactive -c $REPLY/03_CONTIGS/$CONTIG-contigs.db \
-                 -p $REPLY/06_MERGED/$CONTIG/PROFILE.db
+anvi-interactive -c $REPLY/Anvio/03_CONTIGS/$CONTIG-contigs.db \
+                 -p $REPLY/Anvio/06_MERGED/$CONTIG/PROFILE.db
