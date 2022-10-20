@@ -66,4 +66,6 @@ mv $TEMP/snp-sites $WORKDIR/Phylogeny_$OUT/
 mv $TEMP/roary $WORKDIR/Phylogeny_$OUT/
 rm -r $TEMP
 
-#raxml or mrbayes #Construction of the phylogenetic tree
+eval "$(conda shell.bash hook)"
+conda activate base
+iqtree -s $WORKDIR/Phylogeny_$OUT/snp-sites/$REPLY.phylip -B 1000 -alrt 1000
