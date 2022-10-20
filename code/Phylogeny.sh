@@ -14,7 +14,7 @@ mkdir -p Microbiome_pangenomic_analysis/data/temp/genomes
 WORKDIR=~/PhD/Microbiome_pangenomic_analysis/data/$REPLY
 TEMP=Microbiome_pangenomic_analysis/data/temp
 mkdir $TEMP/snp-sites
-mkdir $TEMP/raxml
+
 cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
 SAMPLES=($(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' $TEMP/taxonomy.tsv | tr "\n" " "))
 
@@ -68,4 +68,14 @@ rm -r $TEMP
 
 eval "$(conda shell.bash hook)"
 conda activate base
-iqtree -s $WORKDIR/Phylogeny_$OUT/snp-sites/$REPLY.phylip -B 1000 -alrt 1000
+iqtree -s $WORKDIR/Phylogeny_$OUT/snp-sites/$REPLY.phylip -m GTR+ASC
+mkdir $WORKDIR/Phylogeny_$OUT/iqtree
+mv $WORKDIR/Phylogeny_$OUT/snp-sites/$REPLY.phylip.* $WORKDIR/Phylogeny_$OUT/iqtree/
+
+#This lines build a phylogenetic tree for each lineage.
+cd ~/PhD/Microbiome_pangenomic_analysis/data/
+for i in $(basename *);
+do      iqtree -s $i/Phylogeny_noref/snp-sites/$i.phylip -m GTR+ASC;
+        mkdir $i/Phylogeny_noref/iqtree;
+        mv $i/Phylogeny_noref/snp-sites/$i.phylip.* $i/Phylogeny_noref/iqtree;
+done
