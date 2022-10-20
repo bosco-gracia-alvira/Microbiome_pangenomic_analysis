@@ -21,6 +21,6 @@ The concept of species in bacteria is too broad. Individuals from the same speci
 
 ## Phylogeny construction
 
-The script `Phylogeny.sh` calls the genes of all the genomes from the desired lineage and builds the pangenome. Then, it extracts the SNPs from the core genes (those present in all the genomes), and concatenates them into a single alignment that can be used to build a phylogenetic tree with using your favourite approach.
+The script `Phylogeny.sh` calls the genes of all the genomes from the desired lineage and builds the pangenome. Then, it extracts the SNPs from the core genes (those present in all the genomes), and concatenates them into a single alignment that is used to build the phylogeny with iqtree.
 
 It lets you choose if you want to add the NCBI representative genome as outgroup to your alignment or not. On the one hand, with an outgroup you can root the tree, but at the same time less genes will be considered "core", because the SNPs in the genes that are not present in the outgroup will not be considered.
