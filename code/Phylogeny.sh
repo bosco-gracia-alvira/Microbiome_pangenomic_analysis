@@ -73,9 +73,9 @@ mkdir $WORKDIR/Phylogeny_$OUT/iqtree
 mv $WORKDIR/Phylogeny_$OUT/snp-sites/$REPLY.phylip.* $WORKDIR/Phylogeny_$OUT/iqtree/
 
 #This lines build a phylogenetic tree for each lineage.
-cd ~/PhD/Microbiome_pangenomic_analysis/data/
-for i in $(basename *);
-do      iqtree -s $i/Phylogeny_noref/snp-sites/$i.phylip -m GTR+ASC;
-        mkdir $i/Phylogeny_noref/iqtree;
-        mv $i/Phylogeny_noref/snp-sites/$i.phylip.* $i/Phylogeny_noref/iqtree;
-done
+#cd ~/PhD/Microbiome_pangenomic_analysis/data/
+#for i in $(basename *);
+#do      iqtree -s $i/Phylogeny_noref/snp-sites/$i.phylip -m GTR+ASC;
+#        mkdir $i/Phylogeny_noref/iqtree;
+#        mv $i/Phylogeny_noref/snp-sites/$i.phylip.* $i/Phylogeny_noref/iqtree;
+#done
