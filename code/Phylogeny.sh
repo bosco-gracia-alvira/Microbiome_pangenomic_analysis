@@ -1,6 +1,15 @@
 #!/bin/bash
 
-echo 'For which species do you want to build a phylogenetic tree? Type in the terminal the species with the format: "Genus_species"'
+cd ~/PhD
+
+mkdir -p Microbiome_pangenomic_analysis/data/temp/genomes
+TEMP=Microbiome_pangenomic_analysis/data/temp
+cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
+
+echo 'For which of the following species do you want to build a SNP tree? Type it in the terminal with the format: "Genus_species"'
+echo 
+cut -f2 $TEMP/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+echo
 read
 
 if [[ ! -d Microbiome_pangenomic_analysis/data/$REPLY ]]
@@ -9,10 +18,8 @@ then
 fi
 
 SPECIES=$(echo $REPLY | sed 's/_/ /')
-cd ~/PhD
-mkdir -p Microbiome_pangenomic_analysis/data/temp/genomes
+
 WORKDIR=~/PhD/Microbiome_pangenomic_analysis/data/$REPLY
-TEMP=Microbiome_pangenomic_analysis/data/temp
 mkdir $TEMP/snp-sites
 
 cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
@@ -46,7 +53,7 @@ then
 else
         OUT="noref"
 fi
- 
+
 
 for i in ${SAMPLES[@]};
 do  

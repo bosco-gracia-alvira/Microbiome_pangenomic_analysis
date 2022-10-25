@@ -1,11 +1,19 @@
 #!/bin/bash
 cd ~/PhD
 
+mkdir -p Microbiome_pangenomic_analysis/data/temp
+TEMP=Microbiome_pangenomic_analysis/data/temp
+cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
+
+echo 'Which of the following species do you want to analyse? Type it in the terminal with the format: "Genus_species"'
+echo 
+cut -f2 $TEMP/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+echo
+read
+
+
 eval "$(conda shell.bash hook)"
 conda activate ragtag-2.1
-
-echo 'Which bacteria do you want to scaffold? Type in the terminal the species with the format: "Genus_species"'
-read
 
 SPECIES=$(echo $REPLY | sed 's/_/ /')
 
@@ -17,9 +25,7 @@ fi
 
 mkdir Microbiome_pangenomic_analysis/data/temp/
 WORKDIR=~/PhD/Microbiome_pangenomic_analysis/data/$REPLY/Anvio/
-TEMP=Microbiome_pangenomic_analysis/data/temp
 
-cat Isolates_assembly/Pool_???/07.GTDB-Tk/summary.tsv > $TEMP/taxonomy.tsv
 SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' $TEMP/taxonomy.tsv | sort)
 
 ncbi-genome-download bacteria \
