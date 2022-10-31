@@ -1,12 +1,10 @@
 {
-    "workflow_name": "pangenomics",
+    "workflow_name": "contigs",
     "config_version": "2",
-    "project_name": "MYPAN",
     "fasta_txt": "fasta-txt",
-    "external_genomes": "my-external-genomes.txt",
     "output_dirs": {
         "FASTA_DIR": "01_FASTA",
         "CONTIGS_DIR": "02_CONTIGS",
-        "LOGS_DIR": "00_LOGS_pan"
+        "LOGS_DIR": "00_LOGS_contigs"
     }
 }
