@@ -23,15 +23,6 @@ mkdir $TEMP/snp-sites{1,2}
 CLADE1=($(awk '$2==0 {print $1}' $WORKDIR/PopCOGenT/$REPLY.cluster.tsv))
 CLADE2=($(awk '$2==1 {print $1}' $WORKDIR/PopCOGenT/$REPLY.cluster.tsv))
 
-var1=(nm)
-var2=(cd)
-
-for i in {1,2};
-do      for x in ${var${i}[@]};
-        do echo $x;
-        done;
-done
-
 for i in ${CLADE1[@]};
 do  
     cp Isolates_assembly/Pool_$(echo $i | cut -f1 -d "_")/07.GTDB-Tk/Genomes/$i.fa $TEMP/genomes1;
