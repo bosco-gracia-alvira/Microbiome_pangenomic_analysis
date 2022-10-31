@@ -23,7 +23,7 @@ eval "$(conda shell.bash hook)"
 conda activate anvio-7.1
 
 anvi-run-workflow -w contigs \
-                  -c ../../../code/config-contig.json
+                  -c ../../../code/config-contigs-default.json
 
 anvi-run-workflow -w pangenomics \
-                  -c ../../../code/config-pangen.json
+                  -c ../../../code/config-pangen-default.json
