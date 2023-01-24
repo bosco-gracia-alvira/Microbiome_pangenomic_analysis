@@ -43,8 +43,9 @@ anvi-interactive --manual-mode \
                  -p ${REPLY}_metabolism_PROFILE.db \
                  --title "Acetobacter_indonesiensis Metabolism Heatmap"
 
+##I stop here
 # learn where the MODULES.db is:
-export ANVIO_MODULES_DB=`python -c "import anvio; import os; print(os.path.join(os.path.dirname(anvio.__file__), 'data/misc/KEGG/MODULES.db'))"`
+export ANVIO_MODULES_DB=`python3 -c "import anvio; import os; print(os.path.join(os.path.dirname(anvio.__file__), '/usr/local/Caskroom/miniconda/base/envs/anvio-7.1/lib/python3.6/site-packages/anvio/data/misc/KEGG/MODULES.db'))"`
 
 # start an empty file:
 echo -e "module\tclass\tcategory\tsubcategory\tname" > modules_info.txt
@@ -64,3 +65,10 @@ paste module_class.txt <(cut -f 2 module_names.txt ) >> modules_info.txt
 # empty the trash bin:
 rm module_names.txt module_class.txt
 
+anvi-import-misc-data additional-files/metabolism/modules_info.txt \
+                      -p Enterococcus_metabolism_PROFILE.db \
+                      -t items
+
+anvi-import-state -s additional-files/metabolism/metabolism_state.json \
+                  -p Enterococcus_metabolism_PROFILE.db \
+                  -n default

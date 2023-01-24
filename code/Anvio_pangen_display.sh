@@ -11,4 +11,5 @@ eval "$(conda shell.bash hook)"
 conda activate anvio-7.1
 
 anvi-display-pan -g 03_PAN/MYPAN-GENOMES.db \
-                 -p 03_PAN/MYPAN-PAN.db
+                 -p 03_PAN/MYPAN-PAN.db \
+                 --title $REPLY

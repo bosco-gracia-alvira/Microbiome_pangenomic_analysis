@@ -15,7 +15,7 @@ SPECIES=$(echo $REPLY | sed 's/_/ /')
 
 if [[ ! -d Microbiome_pangenomic_analysis/data/$REPLY/Anvio_pangen ]]
 then
-    mkdir Microbiome_pangenomic_analysis/data/$REPLY/Anvio_pangen;
+    mkdir -p Microbiome_pangenomic_analysis/data/$REPLY/Anvio_pangen;
 fi
 
 WORKDIR=~/PhD/Microbiome_pangenomic_analysis/data/$REPLY/Anvio_pangen
