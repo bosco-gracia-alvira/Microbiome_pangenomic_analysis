@@ -28,7 +28,7 @@ do scp Isolates_assembly/Pool_$(echo $i | cut -f1 -d "_")/07.GTDB-Tk/Genomes/$i.
 done
 
 ssh -T vetlinux05@pgnsrv043.vu-wien.ac.at << FOO
-systemctl enable --now cockpit.socket
+
 REPLY=$REPLY
 cd ~/Bosco/PopCOGenT/src/PopCOGenT/
 
@@ -37,7 +37,7 @@ export MUGSY_INSTALL=~/.local/miniconda3/envs/PopCOGenT/bin
 
 source config.sh
 
-eval "$(conda shell.bash hook)"
+eval "\$(conda shell.bash hook)"
 conda activate PopCOGenT
 source \${mugsy_env}
 
