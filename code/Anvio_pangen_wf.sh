@@ -27,3 +27,4 @@ anvi-run-workflow -w contigs \
 
 anvi-run-workflow -w pangenomics \
                   -c ../../../code/config-pangen.json
+                  
