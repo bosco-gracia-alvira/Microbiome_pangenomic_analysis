@@ -31,7 +31,6 @@ else
         mkdir -p "$PANGEN"/05_ENRICHMENT
 fi
 
-
 # This chunk of code only works if the user is working with a whole genus.
 if [[ ! $REPLY =~ "_" ]]
 then
@@ -54,7 +53,6 @@ then
         rm "$PANGEN"/*.tmp
 
 fi
-
 
 for i in {COG20_FUNCTION,COG20_CATEGORY,KOfam,KEGG_Module,COG20_PATHWAY,KEGG_Class}
 do      anvi-compute-functional-enrichment-across-genomes -e "$WORKDIR"/my-external-genomes_no_bins.txt \
