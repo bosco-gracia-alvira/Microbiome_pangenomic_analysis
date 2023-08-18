@@ -26,6 +26,7 @@ anvi-estimate-metabolism -e "$WORKDIR"/my-external-genomes_no_bins.txt \
 
 # This command transforms the matrix into a newick tree, which is used to visualize the results in the interactive interface.
 anvi-matrix-to-newick "$WORKDIR"/04_METABOLISM/A_indonesiensis-completeness-MATRIX.txt
+anvi-matrix-to-newick "$WORKDIR"/04_METABOLISM/A_indonesiensis-ko_hits-MATRIX.txt
 
 # We create the profile database, which stores the information of the completeness matrix.
 anvi-interactive -d "$WORKDIR"/04_METABOLISM/A_indonesiensis-completeness-MATRIX.txt \
@@ -78,10 +79,17 @@ anvi-interactive --manual-mode \
                  -d "$WORKDIR"/04_METABOLISM/A_indonesiensis-completeness-MATRIX.txt \
                  -t "$WORKDIR"/04_METABOLISM/A_indonesiensis-completeness-MATRIX.txt.newick \
                  -p "$WORKDIR"/04_METABOLISM/A_indonesiensis_metabolism_PROFILE.db \
-                 --title "A. indonesiensis Metabolism Heatmap"
+                 --title "A. indonesiensis Metabolism Heatmap (Modules)"
+
+anvi-interactive --manual-mode \
+                 -d "$WORKDIR"/04_METABOLISM/A_indonesiensis-ko_hits-MATRIX.txt \
+                 -t "$WORKDIR"/04_METABOLISM/A_indonesiensis-ko_hits-MATRIX.txt.newick \
+                 -p "$WORKDIR"/04_METABOLISM/A_indonesiensis_metabolism_PROFILE.db \
+                 --title "A. indonesiensis Metabolism Heatmap (KOs)"
 
 # Finally, we can run the enrichment analysis, that screens for modules that are significantly enriched in one clade. What it asks is: which proportion of the clades has this complete pathway? So if all the genomes of the clade have 0.8 completeness and the members of the other clade have 0, this won't be detected because the module is not complete. However, if ALL the members of a clade have a completeness of 1 and the genomes from the other clade have 0.8, then it will detected as enriched.
-anvi-compute-metabolic-enrichment -M "$WORKDIR"/04_METABOLISM/A_indonesiensis_metabolism_modules.txt \
-                                  -G "$WORKDIR"/clades.txt \
-                                  --module-completion-threshold 1 \
-                                  -o "$WORKDIR"/04_METABOLISM/A_indonesiensis_enriched_modules.txt
+anvi-compute-metabolic-enrichment \
+                    -M "$WORKDIR"/04_METABOLISM/A_indonesiensis_metabolism_modules.txt \
+                    -G "$WORKDIR"/clades.txt \
+                    --module-completion-threshold 1 \
+                    -o "$WORKDIR"/04_METABOLISM/A_indonesiensis_enriched_modules.txt

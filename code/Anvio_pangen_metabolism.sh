@@ -39,9 +39,10 @@ PANGEN="$WORKDIR/${REPLY}/Anvio_pangen"
 anvi-estimate-metabolism -e "$PANGEN"/my-external-genomes.txt \
                          --matrix-format \
                          -O "$METABOLISM"/"${REPLY}" \
-                         --module-completion-threshold 1 
+                         --module-completion-threshold 1
 
 anvi-matrix-to-newick "$METABOLISM"/"${REPLY}"-completeness-MATRIX.txt
+anvi-matrix-to-newick "$METABOLISM"/"${REPLY}"-ko_hits-MATRIX.txt
 
 # Here we create the metabolism profile db:
 anvi-interactive -d "$METABOLISM"/"${REPLY}"-completeness-MATRIX.txt \
@@ -145,4 +146,11 @@ anvi-interactive --manual-mode \
                  -d "$METABOLISM"/${REPLY}-completeness-MATRIX.txt \
                  -t "$METABOLISM"/${REPLY}-completeness-MATRIX.txt.newick \
                  -p "$METABOLISM"/${REPLY}_metabolism_PROFILE.db \
-                 --title "${REPLY} Metabolism Heatmap"
+                 --title "${REPLY} Metabolism Heatmap (Modules)"
+
+anvi-interactive --manual-mode \
+                 -d "$METABOLISM"/${REPLY}-ko_hits-MATRIX.txt \
+                 -t "$METABOLISM"/${REPLY}-ko_hits-MATRIX.txt.newick \
+                 -p "$METABOLISM"/${REPLY}_metabolism_PROFILE.db \
+                 --title "${REPLY} Metabolism Heatmap (KOs)"
+
