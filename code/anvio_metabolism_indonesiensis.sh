@@ -34,6 +34,11 @@ anvi-interactive -d "$WORKDIR"/04_METABOLISM/A_indonesiensis-completeness-MATRIX
                  --manual-mode \
                  --dry-run
 
+anvi-interactive -d "$WORKDIR"/04_METABOLISM/A_indonesiensis-ko_hits-MATRIX.txt \
+                 -p "$WORKDIR"/04_METABOLISM/A_indonesiensis_metabolism_PROFILE.db \
+                 --manual-mode \
+                 --dry-run
+
 # The following commands make the interactive interface prettier, including the names and pathways that the modules belong to.
 
 # We learn where the KEGG/MODULES.db is:

@@ -153,4 +153,3 @@ anvi-interactive --manual-mode \
                  -t "$METABOLISM"/${REPLY}-ko_hits-MATRIX.txt.newick \
                  -p "$METABOLISM"/${REPLY}_metabolism_PROFILE.db \
                  --title "${REPLY} Metabolism Heatmap (KOs)"
-
