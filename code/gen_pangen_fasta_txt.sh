@@ -40,4 +40,6 @@ echo -e 'name\tcontigs_db_path' > $TEMP/header2.tmp
 paste $TEMP/name.tmp $TEMP/contigs_db_path.tmp > $TEMP/body2.tmp
 cat $TEMP/header2.tmp $TEMP/body2.tmp > $WORKDIR/my-external-genomes.txt
 
+# We can also create the version that does not include bins (incomplete genomes)
+grep -v "bin" $WORKDIR/my-external-genomes.txt > $WORKDIR/my-external-genomes_no_bins.txt
 rm -r $TEMP
