@@ -15,7 +15,7 @@
     },
     "centrifuge": {
         "threads": 2,
-        "run": "",
+        "run": false,
         "db": ""
     },
     "anvi_run_hmms": {
@@ -157,7 +157,7 @@
         "threads": ""
     },
     "anvi_run_pfams": {
-        "run": "",
+        "run": true,
         "--pfam-data-dir": "",
         "threads": ""
     },
