@@ -100,7 +100,7 @@
         "additional_params": ""
     },
     "anvi_pan_genome": {
-        "threads": 7,
+        "threads": 8,
         "--project-name": "",
         "--genome-names": "",
         "--skip-alignments": "",
@@ -125,9 +125,9 @@
         "threads": ""
     },
     "anvi_compute_genome_similarity": {
-        "run": false,
+        "run": true,
         "additional_params": "",
-        "threads": ""
+        "threads": 8
     },
     "gen_external_genome_file": {
         "threads": ""
