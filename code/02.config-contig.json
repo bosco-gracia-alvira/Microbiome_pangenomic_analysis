@@ -20,14 +20,14 @@
     },
     "anvi_run_hmms": {
         "run": true,
-        "threads": 5,
+        "threads": 8,
         "--also-scan-trnas": true,
         "--installed-hmm-profile": "",
         "--hmm-profile-dir": ""
     },
     "anvi_run_kegg_kofams": {
         "run": true,
-        "threads": 4,
+        "threads": 8,
         "--kegg-data-dir": "",
         "--hmmer-program": "",
         "--keep-all-hits": "",
@@ -36,7 +36,7 @@
     },
     "anvi_run_ncbi_cogs": {
         "run": true,
-        "threads": 5,
+        "threads": 8,
         "--cog-data-dir": "",
         "--sensitive": "",
         "--temporary-dir-path": "",
@@ -44,11 +44,11 @@
     },
     "anvi_run_scg_taxonomy": {
         "run": true,
-        "threads": 6,
+        "threads": 8,
         "--scgs-taxonomy-data-dir": ""
     },
     "anvi_run_trna_scan": {
-        "run": false,
+        "run": true,
         "threads": 6,
         "--trna-cutoff-score": ""
     },
@@ -104,9 +104,9 @@
         "threads": ""
     },
     "anvi_run_pfams": {
-        "run": "",
+        "run": true,
         "--pfam-data-dir": "",
-        "threads": ""
+        "threads": 8
     },
     "output_dirs": {
         "FASTA_DIR": "01_FASTA",

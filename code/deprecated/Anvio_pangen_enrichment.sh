@@ -77,14 +77,17 @@ then
 
 fi
 
-# for i in {COG20_FUNCTION,COG20_CATEGORY,KOfam,KEGG_Module,COG20_PATHWAY,KEGG_Class}
-# do      
-#         anvi-compute-functional-enrichment-across-genomes \
-#                                         -e "$WORKDIR"/my-external-genomes${bins}.txt \
-#                                         -o "$WORKDIR"/05_ENRICHMENT/Enrichment"${i}".txt \
-#                                         -G "$WORKDIR"/Groups.txt \
-#                                         --annotation-source "${i}"
-# done
+if [[ -f "$PANGEN"/Groups.txt ]]
+then
+        for i in {COG20_FUNCTION,COG20_CATEGORY,KOfam,KEGG_Module,COG20_PATHWAY,KEGG_Class}
+        do      
+                anvi-compute-functional-enrichment-across-genomes \
+                                                -e "$PANGEN"/my-external-genomes${bins}.txt \
+                                                -o "$PANGEN"/05_ENRICHMENT/Enrichment"${i}".txt \
+                                                -G "$PANGEN"/Groups.txt \
+                                                --annotation-source "${i}"
+        done
+fi
 
 # for i in $(cut -f6 "$WORKDIR"/05_ENRICHMENT/EnrichmentCOG20_FUNCTION.txt)
 # do grep "$i" "$WORKDIR"/COG20.tsv

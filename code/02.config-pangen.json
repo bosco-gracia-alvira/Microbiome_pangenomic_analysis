@@ -53,7 +53,7 @@
         "--trna-cutoff-score": ""
     },
     "anvi_script_reformat_fasta": {
-        "run": true,
+        "run": false,
         "--prefix": "{group}",
         "--simplify-names": true,
         "--keep-ids": "",
@@ -163,7 +163,7 @@
     },
     "anvi_gen_genomes_storage": {
         "--gene-caller": "",
-        "threads": ""
+        "threads": 8
     },
     "anvi_get_sequences_for_gene_clusters": {
         "--gene-cluster-id": "",
@@ -192,7 +192,6 @@
     "output_dirs": {
         "FASTA_DIR": "01_FASTA",
         "CONTIGS_DIR": "02_CONTIGS",
-        "PHYLO_DIR": "01_PHYLOGENOMICS",
         "PAN_DIR": "03_PAN",
         "LOGS_DIR": "00_LOGS"
     },

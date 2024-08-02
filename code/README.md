@@ -1,26 +1,15 @@
 # Microbiome_pangenomic_analysis - code
 
-This is the collection of scripts that I am writing to analyse each bacterial lineage. In principle each analysis can be ran independently, but some are composed of more than one script. All of the scripts start by asking you which species do you want to analyse.
+This is the collection of scripts that I am writing to analyse each bacterial lineage. In principle each analysis can be ran independently, but it is advised to run all the scripts in the established order, even if they are from different analyses.
 
-## Anvi'o population genomics analysis
+## Anvi'o pangenomics
 
-This workflow maps the reads of all the samples from the same lineage to a reference assembly that can be chosen. The scripts have to be run in the following order:
+This workflow compiles all the genomes from the desired taxon (species level, GTDB) and builds a pangenome. The scripts have to be run in the following order:
 
-1. `gen_samples_txt.sh`
-2. `gen_fasta_txt.sh`
-3. `Anvio_workflow.sh`
-4. `Anvio_display.sh`
+1. `01.Gen_tables.sh`: records which genomes from the assembly collection belong to the desired species and creates the tables that Anvi'o needs subsetting the assembly collection to the desired species. This script requires the presence of `01.Reformat_metadata.R` in the same folder.
 
-## Average Nucleotide Identity calculation
+2. `02.Anvio_pangen_wf.sh` runs the Anvi'o pangenomic workflow using as input the tables with the genome locations. It computes automatically the Average Nucleotide Identity (ANI) and imports the metadata (isolate's temperature regime, fly generation...). After that, the script textracts from the pangenome the single copy genes (SCGs) that are not identical across the replicates and uses them to build the phylogeny. Finally, it makes an enrichment analysis; it looks for functions (pfams, COGs, KEGGs...) that are significantly enriched in the genomes from each temperature regime. This script requires two extra config.json files: `02.config-contig.json` and `02.config-pangen.json`. The output can be found in "03_PAN/Functional_enrichment/". The pangenome web interface can be displayed with the script `02.Anvio_pangen_display.sh`. 
 
-The script `ANI.sh` calculates the pairwise ANI of all the samples from the same lineage and exports a .png file with the result.
 
-## Evaluate for intra-specific microbial populations
+## Anvi'o population genomics
 
-The concept of species in bacteria is too broad. Individuals from the same species can belong to different populations, which poses a barrier to recombination. With `PopCOGenT.sh` script we can test if the bacteria assignated to the same species belong also to the same population.
-
-## Phylogeny construction
-
-The script `Phylogeny.sh` calls the genes of all the genomes from the desired lineage and builds the pangenome. Then, it extracts the SNPs from the core genes (those present in all the genomes), and concatenates them into a single alignment that is used to build the phylogeny with iqtree.
-
-It lets you choose if you want to add the NCBI representative genome as outgroup to your alignment or not. On the one hand, with an outgroup you can root the tree, but at the same time less genes will be considered "core", because the SNPs in the genes that are not present in the outgroup will not be considered.

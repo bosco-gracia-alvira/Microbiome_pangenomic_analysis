@@ -1,6 +1,6 @@
 {
     "output_dirs": {
-        "CONTIGS_DIR": "03_CONTIGS",
+        "CONTIGS_DIR": "02_CONTIGS",
         "MAPPING_DIR": "04_MAPPING",
         "PROFILE_DIR": "05_ANVIO_PROFILE",
         "MERGE_DIR": "06_MERGED",
@@ -9,7 +9,7 @@
     "workflow_name": "metagenomics",
     "config_version": "2",
     "samples_txt": "samples-txt",
-    "fasta_txt": "fasta-txt",
+    "fasta_txt": "reference-txt",
     "references_mode": true,
     "iu_filter_quality_minoche": {
         "run": true,
@@ -39,7 +39,7 @@
     },
     "bowtie_build": {
         "additional_params": "",
-        "threads": 4
+        "threads": 8
     },
     "anvi_init_bam": {
         "threads": 2

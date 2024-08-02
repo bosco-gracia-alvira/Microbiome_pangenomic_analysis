@@ -52,6 +52,13 @@ METABOLISM="$WORKDIR/${REPLY}/Anvio_pangen/04_METABOLISM"
 PANGEN="$WORKDIR/${REPLY}/Anvio_pangen"
 
 # This command runs the annotated genomes against the KEGG database and estimates the completeness of each KEGG module (i.e. pathway) in each genome. It outputs a matrix with the completeness of each module in each genome, another matrix with the KOs (each component of the module) in each genome, and a third matrix with the modules that are complete in at least one genome.
+
+# In case kegg-kofams has not been run, we run it. Might take a while.
+for i in $(basename "$WORKDIR/${REPLY}/Anvio_pangen/02_CONTIGS/"*".db")
+do
+anvi-run-kegg-kofams -c "$WORKDIR/${REPLY}/Anvio_pangen/02_CONTIGS/${i}" -T 18
+done
+
 anvi-estimate-metabolism -e "$PANGEN"/my-external-genomes${bins}.txt \
                          --matrix-format \
                          -O "$METABOLISM"/"${REPLY}"${bins} \

@@ -1,0 +1,90 @@
+#!/bin/bash
+# This script runs Anvio pangenomic analysis for the desired species
+# Bosco Gracia Alvira, 2024
+
+### VARIABLES
+
+# Set the paths
+WORKDIR="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data"
+
+### COMMANDS
+IFS="
+"
+
+# Ask the user which species to analyse
+echo 'Which species do you want to analyse with Anvio? Type in the terminal the species with the format: "Genus_species"'
+echo
+cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+read
+
+# If the fasta-txt is not available we cannot do the analysis!
+if [[ ! -f "$WORKDIR"/$REPLY/Anvio/fasta-txt ]]
+then    
+        echo
+        echo
+        echo -e "The species $REPLY is not availabe :("
+        echo -e "Maybe you have forgotten to run 01.Gen_tables.sh"
+        echo
+        exit
+fi
+
+eval "$(conda shell.bash hook)"
+conda activate anvio-7.1
+
+cd "$WORKDIR"/"$REPLY"/Anvio || exit
+
+anvi-run-workflow -w contigs \
+                  -c ../../../code/02.config-contig.json
+
+anvi-run-workflow -w pangenomics \
+                  -c ../../../code/02.config-pangen.json
+
+# Import the misc data that was created in 01.Gen_tables.sh
+anvi-import-misc-data \
+        "$WORKDIR"/$REPLY/Anvio/Anvio_misc.tsv \
+        -p "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-PAN.db \
+        -t layers
+
+# Phylogenomic tree of the species
+# Extract the SCGs from the pangenome. SCGs must be found in all the genomes and only once
+SAMPLES=$(cut -f1 "$WORKDIR"/$REPLY/Anvio/fasta-txt | grep -v "name")
+NUM=$(echo $SAMPLES | wc -w)
+
+anvi-get-sequences-for-gene-clusters \
+        -g "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-GENOMES.db \
+        -p "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-PAN.db \
+        -o "$WORKDIR"/"$REPLY"/Anvio/03_PAN/SCGs.fa \
+        --min-num-genes-from-each-genome 1 \
+        --max-num-genes-from-each-genome 1 \
+        --max-functional-homogeneity-index 0.99 \
+        --min-num-genomes-gene-cluster-occurs "$NUM" \
+        --concatenate
+
+# Generate a phylogenomic tree
+anvi-gen-phylogenomic-tree \
+        -f "$WORKDIR"/"$REPLY"/Anvio/03_PAN/SCGs.fa \
+        -o "$WORKDIR"/"$REPLY"/Anvio/03_PAN/phylogenomic-tree.txt
+
+# We cannot include the tree as it is in the Anvi'o profile database, so we transform it into a misc-data file:
+echo -e "item_name\tdata_type\tdata_value" > "$WORKDIR"/"$REPLY"/Anvio/03_PAN/header.tmp
+echo -e "phylogeny\tnewick\t$(cat "$WORKDIR"/"$REPLY"/Anvio/03_PAN/phylogenomic-tree.txt)" > "$WORKDIR"/"$REPLY"/Anvio/03_PAN/body.tmp
+cat "$WORKDIR"/"$REPLY"/Anvio/03_PAN/header.tmp "$WORKDIR"/"$REPLY"/Anvio/03_PAN/body.tmp > "$WORKDIR"/"$REPLY"/Anvio/03_PAN/phylogeny_order.txt
+rm "$WORKDIR"/"$REPLY"/Anvio/03_PAN/*.tmp
+
+# Finally we import it into the profile databases:
+anvi-import-misc-data "$WORKDIR"/"$REPLY"/Anvio/03_PAN/phylogeny_order.txt \
+                      -p "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-PAN.db \
+                      -t layer_orders \
+                      --just-do-it
+
+# Test if there are functional differences between the genomes from each temperature regime
+mkdir -p "$WORKDIR"/"$REPLY"/Anvio/03_PAN/Functional_enrichment
+for i in {COG20_FUNCTION,Pfam,KEGG_Module,KOfam,COG20_PATHWAY,KEGG_Class,COG20_CATEGORY}
+do      
+        anvi-compute-functional-enrichment-in-pan \
+        -p "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-PAN.db \
+        -g "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-GENOMES.db \
+        --category-variable Temperature \
+        --annotation-source "${i}" \
+        -o "$WORKDIR"/"$REPLY"/Anvio/03_PAN/Functional_enrichment/"${i}"-enrichment.txt 
+done
