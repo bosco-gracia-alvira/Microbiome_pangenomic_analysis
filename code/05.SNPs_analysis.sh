@@ -87,6 +87,8 @@ done < "$SNPS/genomes_reads.txt"
 # Create an index for the reference combined genome
 bowtie2-build --threads 16 "$SNPS"/ref.fa "$SNPS"/ref
 
+echo -e "sample\tcoverage" > "$SNPS"/coverage.txt
+
 # Competitive mapping mapping against each of the reads sets
 for i in $(basename -a "$RAW_READS"/*_1.fq.gz | cut -d "_" -f1)
 do
@@ -100,7 +102,9 @@ do
     -1 "$RAW_READS"/${i}_1.fq.gz \
     -2 "$RAW_READS"/${i}_2.fq.gz \
     -S "$BAMS"/${i}.sam \
-    --threads 16 > "$LOGS"/bowtie2_${i}.log 2>&1
+    --threads 16 \
+    --rg-id "${i}" \
+    --rg "SM:${i}" > "$LOGS"/bowtie2_${i}.log 2>&1
 
   # Turn the sam into bam and sort it
     samtools view \
@@ -113,9 +117,14 @@ do
         -o "$BAMS"/${i}_sorted.bam \
         -
 
-    # Delete the sam and the unsorted bam
+    # Delete the sam to save space
     rm "$BAMS"/${i}.sam
-    rm "$BAMS"/${i}.bam
+
+    # Calculate the mean coverage of the sample
+    mean_coverage=$(samtools depth "$BAMS"/${i}_sorted.bam | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}')
+
+    # Append the mean coverage to the coverage file
+    echo -e "${i}\t${mean_coverage}" >> "$SNPS"/coverage.txt
 done
 
 # Remove the bams whose coverage is below 10
