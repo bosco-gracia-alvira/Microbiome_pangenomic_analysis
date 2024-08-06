@@ -25,18 +25,32 @@ library(gtools)
 
 # Paths to the files that we want to import
 data_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/SNPs_analysis"
-metadata_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Anvio/Anvio_misc.tsv"
+metadata_isolates_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Anvio/Anvio_misc.tsv"
 visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
 
-metadata <- fread(metadata_path, header=T)
 pca <- read.table(paste0(data_path,"/Lactiplantibacillus_plantarum.eigenvec"),sep=" ",header=F)
-
 colnames(pca)[1] <- "name"
 pca[,2] <- NULL
 
-pi.all <- read.table(paste0(data_path,"/Lactiplantibacillus_plantarum_10kb.windowed.pi"),header=T)
+metadata_isolates <- fread(metadata_isolates_path, header=T)
+metadata_isolates$Source <- "Isolate"
 
+           
+metadata_pools <- as.data.frame(pca$name[grepl("^cF|^hF", pca$name)])
+colnames(metadata_pools) <- "name"
+metadata_pools <- metadata_pools %>%
+  mutate(
+    Temperature = case_when(
+      str_detect(name, "F0") ~ "BASE",
+      str_detect(name, "^h") ~ "HOT",
+      str_detect(name, "^c") ~ "COLD"),
+    Generation = str_extract(name, "F\\d+"),
+    Source = "Pool")
 
+metadata <- rbind(metadata_isolates,metadata_pools)
+
+# Create a colour palette for our temperatures
+temp_palette <- c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue")
 
 ```
 
@@ -45,9 +59,10 @@ pi.all <- read.table(paste0(data_path,"/Lactiplantibacillus_plantarum_10kb.windo
 
 pca_merged <- merge(pca, metadata, by = "name")
 
-ggplot(pca_merged, aes(x = V3, y = V4, color = Generation)) +
-  geom_point(aes(shape=Temperature)) +
-  labs(x = "PC1", y = "PC2", color = "Generation", shape="Temperature") +
+ggplot(pca_merged, aes(x = V3, y = V4, color = Temperature)) +
+  geom_point(aes(shape=Source)) +
+  labs(x = "PC1", y = "PC2", color = "Temperature", shape="Source") +
+  scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
   theme_minimal()
 ggsave(filename = paste0(visuals_path,"/Lpla_SNPs_PCA.png"), width = 6, height = 4, dpi = 300)
 
