@@ -24,7 +24,6 @@ SNPS="$WORKDIR/${REPLY}/SNPs_analysis"
 RAW_READS="$SNPS/reads"
 LOGS="$SNPS/logs"
 BAMS="$SNPS/bams"
-#BAMS="$WORKDIR/${REPLY}/Anvio_popgen/04_MAPPING/${REPLY}"
 
 ### COMMANDS
 IFS="
@@ -91,41 +90,45 @@ bowtie2-build --threads 16 "$SNPS"/ref.fa "$SNPS"/ref
 echo -e "sample\tcoverage" > "$SNPS"/coverage.txt
 
 # Competitive mapping mapping against each of the reads sets
-for i in $(basename -a "$RAW_READS"/*_1.fq.gz | rev | cut -d "_" -f2- | rev)
+for i in $(basename -a "$RAW_READS"/*_1.fq.gz)
 do
-  echo "Mapping $i"
+  sample="${i%_1.fq.gz}"
+  r1="${i}"
+  r2="${sample}_2.fq.gz"
+
+  echo "Mapping ${sample}"
   # Map paired end reads using bowtie with stringent settings and output the result to a sam file
   bowtie2 \
     -x "$SNPS"/ref \
     -q --very-sensitive \
     --no-mixed \
     --no-discordant \
-    -1 "$RAW_READS"/${i}_1.fq.gz \
-    -2 "$RAW_READS"/${i}_2.fq.gz \
-    -S "$BAMS"/${i}.sam \
+    -1 "$RAW_READS/${r1}" \
+    -2 "$RAW_READS/${r2}" \
+    -S "$BAMS/${sample}.sam" \
     --threads 16 \
-    --rg-id "${i}" \
-    --rg "SM:${i}" > "$LOGS"/bowtie2_${i}.log 2>&1
+    --rg-id "${sample}" \
+    --rg "SM:${sample}" > "$LOGS/bowtie2_${sample}.log" 2>&1
 
   # Turn the sam into bam and sort it
     samtools view \
         -bS \
         -@ 16 \
-        "$BAMS"/${i}.sam |\
+        "$BAMS/${sample}.sam" |\
     samtools sort \
         -@ 16 \
         -O bam \
-        -o "$BAMS"/${i}_sorted.bam \
+        -o "$BAMS/${sample}_sorted.bam" \
         -
 
     # Delete the sam to save space
-    rm "$BAMS"/${i}.sam
+    rm "$BAMS/${sample}.sam"
 
     # Calculate the mean coverage of the sample
-    mean_coverage=$(samtools depth "$BAMS"/${i}_sorted.bam | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}')
+    mean_coverage=$(samtools depth "$BAMS/${sample}_sorted.bam" | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}')
 
     # Append the mean coverage to the coverage file
-    echo -e "${i}\t${mean_coverage}" >> "$SNPS"/coverage.txt
+    echo -e "${sample}\t${mean_coverage}" >> "$SNPS/coverage.txt"
 done
 
 # Remove the bams whose coverage is below 10
