@@ -16,7 +16,8 @@ echo 'Which species do you want to analyse with Anvio? Type in the terminal the 
 echo
 cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
 read
-SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' "$WORKDIR"/taxonomy.tsv | grep -v "user" | sed 's/-/_/g')
+SPECIES=$(echo "$REPLY" | sed 's/_/ /')
+SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$8 ~ s {print $1}' "$WORKDIR"/Genome_metadata.tsv | grep -v "user" | sed 's/-/_/g')
 
 REFERENCE="$WORKDIR/${REPLY}/Anvio_popgen/${REPLY}_pangenome.fasta"
 SNPS="$WORKDIR/${REPLY}/SNPs_analysis"
@@ -90,7 +91,7 @@ bowtie2-build --threads 16 "$SNPS"/ref.fa "$SNPS"/ref
 echo -e "sample\tcoverage" > "$SNPS"/coverage.txt
 
 # Competitive mapping mapping against each of the reads sets
-for i in $(basename -a "$RAW_READS"/*_1.fq.gz | cut -d "_" -f1)
+for i in $(basename -a "$RAW_READS"/*_1.fq.gz | rev | cut -d "_" -f2- | rev)
 do
   echo "Mapping $i"
   # Map paired end reads using bowtie with stringent settings and output the result to a sam file
@@ -145,7 +146,7 @@ bcftools mpileup -Ou -f "$SNPS"/ref.fa "$BAMS"/*.bam | \
 # This command filters the SNPs by quality and depth
 bcftools view -i 'QUAL>20 && DP>10' "$SNPS/$REPLY.vcf" > "$SNPS/$REPLY.filtered.vcf"
 
-# We make a BED file
+# We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
 plink2 --vcf "$SNPS/$REPLY.filtered.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/$REPLY"
 plink2 --bfile "$SNPS/$REPLY" --double-id --allow-extra-chr --pca --out "$SNPS/$REPLY"
 
