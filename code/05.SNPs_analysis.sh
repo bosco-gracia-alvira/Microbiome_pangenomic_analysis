@@ -131,6 +131,12 @@ do
     echo -e "${sample}\t${mean_coverage}" >> "$SNPS/coverage.txt"
 done
 
+cd "$SNPS" || exit
+
+# List the samples with coverage above 10 and 5
+awk '$2 >= 10 {print "./bams/"$1"_sorted.bam"}' "$SNPS/coverage.txt" | grep -v "sample" > "$SNPS/coverage_10.txt"
+awk '$2 >= 5 {print "./bams/"$1"_sorted.bam"}' "$SNPS/coverage.txt" | grep -v "sample" > "$SNPS/coverage_5.txt"
+
 # Remove the bams whose coverage is below 10
 for i in "$BAMS"/*_sorted.bam; do
     mean_coverage=$(samtools depth "$bam" | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}')
@@ -143,14 +149,26 @@ for i in "$BAMS"/*_sorted.bam; do
 done
 
 # This command calculates allele frequencies in all the positions, then does gene calling and finally changes the sample IDs, that originally include the whole path to the bam file and the .bam extension
-bcftools mpileup -Ou -f "$SNPS"/ref.fa "$BAMS"/*.bam | \
+
+
+bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -d 5 | \
+    bcftools call  --ploidy 1 -Ou -mv > "$SNPS/${REPLY}_5x.vcf"
+
+
+bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -d 5 --threads 8 | \
+    bcftools call  --threads 8 --ploidy 1 -Ou -mv | bcftools view -i 'QUAL>20 && DP>5' - > "$SNPS/${REPLY}_5x.vcf"
+
+bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_10.txt" -d 10 --threads 8 | \
+    bcftools call  --threads 8 --ploidy 1 -Ou -mv | bcftools view -i 'QUAL>20 && DP>10' - > "$SNPS/${REPLY}_10x.vcf"
+
+bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" | \
     bcftools call  --ploidy 1 -Ou -mv  | sed -e "s|${BAMS}/||g" | sed -e "s|.bam||g" > "$SNPS/$REPLY.vcf"
 
 # This command filters the SNPs by quality and depth
-bcftools view -i 'QUAL>20 && DP>10' "$SNPS/$REPLY.vcf" > "$SNPS/$REPLY.filtered.vcf"
+bcftools view -i 'QUAL>20 && DP>5' "$SNPS/$REPLY.vcf" > "$SNPS/$REPLY.filtered.vcf"
 
 # We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
-plink2 --vcf "$SNPS/$REPLY.filtered.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/$REPLY"
+plink2 --vcf "$SNPS/${REPLY}_5x.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/$REPLY"
 plink2 --bfile "$SNPS/$REPLY" --double-id --allow-extra-chr --pca --out "$SNPS/$REPLY"
 
 
