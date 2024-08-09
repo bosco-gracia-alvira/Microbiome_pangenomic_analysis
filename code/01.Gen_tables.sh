@@ -15,13 +15,17 @@ IFS="
 
 # Create the taxonomy, checkm and metadata files
 # cat "$ASSEMBLY"/Pool_503/07.GTDB-Tk/summary.tsv > "$WORKDIR"/taxonomy.tsv
+# tail -n +2 "$ASSEMBLY"/Pool_591/07.GTDB-Tk/summary.tsv >> "$WORKDIR"/taxonomy.tsv
 # tail -n +2 "$ASSEMBLY"/Pool_643/07.GTDB-Tk/summary.tsv >> "$WORKDIR"/taxonomy.tsv
 
 # cat "$ASSEMBLY"/Pool_503/04.CheckM2/quality_report.tsv > "$WORKDIR"/checkm.tsv
+# tail -n +2 "$ASSEMBLY"/Pool_591/04.CheckM2/quality_report.tsv >> "$WORKDIR"/checkm.tsv
 # tail -n +2 "$ASSEMBLY"/Pool_643/04.CheckM2/quality_report.tsv >> "$WORKDIR"/checkm.tsv
 
 # cat "$ASSEMBLY"/Pool_503/metadata.tsv > "$WORKDIR"/metadata.tsv
+# tail -n +2 "$ASSEMBLY"/Pool_591/metadata.tsv >> "$WORKDIR"/metadata.tsv
 # tail -n +2 "$ASSEMBLY"/Pool_643/metadata.tsv >> "$WORKDIR"/metadata.tsv
+
 
 # The R script has to be run using the native R. It does not work with Anvio's R
 conda deactivate
