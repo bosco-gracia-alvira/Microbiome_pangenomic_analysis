@@ -68,24 +68,25 @@ cd "$WORKDIR/$REPLY/Anvio_popgen" || exit
 anvi-run-workflow -w metagenomics \
         -c ../../../code/04.config-popgen.json
 
-anvi-script-add-default-collection -p "06_MERGED/${REPLY}/PROFILE.db"
+# This is highly experimental
+# anvi-script-add-default-collection -p "06_MERGED/${REPLY}/PROFILE.db"
 
-anvi-gen-variability-profile -c "02_CONTIGS/${REPLY}-contigs.db" \
-                             -p "06_MERGED/${REPLY}/PROFILE.db" \
-                             -C DEFAULT \
-                             -b EVERYTHING \
-                             --engine CDN \
-                             --include-site-pnps \
-                             --kiefl-mode \
-                             -o "${REPLY}-SCVs.txt"
+# anvi-gen-variability-profile -c "02_CONTIGS/${REPLY}-contigs.db" \
+#                              -p "06_MERGED/${REPLY}/PROFILE.db" \
+#                              -C DEFAULT \
+#                              -b EVERYTHING \
+#                              --engine CDN \
+#                              --include-site-pnps \
+#                              --kiefl-mode \
+#                              -o "${REPLY}-SCVs.txt"
 
-anvi-gen-variability-profile -c "02_CONTIGS/${REPLY}-contigs.db" \
-                             -p "06_MERGED/${REPLY}/PROFILE.db" \
-                             -C DEFAULT \
-                             -b EVERYTHING \
-                             --engine AA \
-                             --kiefl-mode \
-                             -o $REPLY-SAAVs.txt
+# anvi-gen-variability-profile -c "02_CONTIGS/${REPLY}-contigs.db" \
+#                              -p "06_MERGED/${REPLY}/PROFILE.db" \
+#                              -C DEFAULT \
+#                              -b EVERYTHING \
+#                              --engine AA \
+#                              --kiefl-mode \
+#                              -o $REPLY-SAAVs.txt
 
-awk '{ if ((NR == 1) || ($73!=$74)) { print } }' "${REPLY}-SCVs.txt" > consensus-SCVs.tsv
-awk '{ if ((NR == 1) || ($30!=$31)) { print } }' "${REPLY}-SAAVs.txt" > consensus-SAAVs.tsv
+# awk '{ if ((NR == 1) || ($73!=$74)) { print } }' "${REPLY}-SCVs.txt" > consensus-SCVs.tsv
+# awk '{ if ((NR == 1) || ($30!=$31)) { print } }' "${REPLY}-SAAVs.txt" > consensus-SAAVs.tsv
