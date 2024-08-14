@@ -10,7 +10,6 @@
 WORKDIR="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data"
 LOCATION_COLD="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Ancestral_microbiome/data/poolseq_reads_cold"
 LOCATION_HOT="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Ancestral_microbiome/data/poolseq_reads_hot"
-LOCATION_ISOLATES="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Isolates_assembly"
 
 echo 'Which species do you want to analyse with Anvio? Type in the terminal the species with the format: "Genus_species"'
 echo
@@ -63,6 +62,10 @@ done
 # Link the isolates reads to the working
 
 # Create a file linking the samples of interest and the location of their reads
+
+# This script creates a file that links the genomes to their reads path (absolute_path_reads.txt)
+Rscript "$WORKDIR"/../code/05.Reformat_SNP.R
+
 head -n 1 "$WORKDIR"/absolute_path_reads.txt > "$SNPS/genomes_reads.txt"
 
 for i in $SAMPLES
@@ -149,11 +152,9 @@ for i in "$BAMS"/*_sorted.bam; do
 done
 
 # This command calculates allele frequencies in all the positions, then does gene calling and finally changes the sample IDs, that originally include the whole path to the bam file and the .bam extension
-
-
-bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -d 5 | \
-    bcftools call  --ploidy 1 -Ou -mv > "$SNPS/${REPLY}_5x.vcf"
-
+bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" --threads 8 | \
+    bcftools call  --ploidy 1 -Ou -mv > "$SNPS/${REPLY}.vcf"
+bcftools view -i 'QUAL>20 && DP>5' "$SNPS/$REPLY.vcf" > "$SNPS/$REPLY.filtered.vcf"
 
 bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -d 5 --threads 8 | \
     bcftools call  --threads 8 --ploidy 1 -Ou -mv | bcftools view -i 'QUAL>20 && DP>5' - > "$SNPS/${REPLY}_5x.vcf"
@@ -161,15 +162,18 @@ bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -d 5 --threads 
 bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_10.txt" -d 10 --threads 8 | \
     bcftools call  --threads 8 --ploidy 1 -Ou -mv | bcftools view -i 'QUAL>20 && DP>10' - > "$SNPS/${REPLY}_10x.vcf"
 
-bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" | \
-    bcftools call  --ploidy 1 -Ou -mv  | sed -e "s|${BAMS}/||g" | sed -e "s|.bam||g" > "$SNPS/$REPLY.vcf"
-
-# This command filters the SNPs by quality and depth
-bcftools view -i 'QUAL>20 && DP>5' "$SNPS/$REPLY.vcf" > "$SNPS/$REPLY.filtered.vcf"
+# We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
+plink2 --vcf "$SNPS/${REPLY}.filtered.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}"
+plink2 --bfile "$SNPS/${REPLY}" --double-id --allow-extra-chr --pca --out "$SNPS/${REPLY}"
+plink2 --bfile "$SNPS/${REPLY}" --read-freq "$SNPS/${REPLY}.afreq" --score "$SNPS/${REPLY}.eigenvec.var" 2 3 header-read --out "$SNPS/${REPLY}_loadings"
 
 # We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
-plink2 --vcf "$SNPS/${REPLY}_5x.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/$REPLY"
-plink2 --bfile "$SNPS/$REPLY" --double-id --allow-extra-chr --pca --out "$SNPS/$REPLY"
+plink2 --vcf "$SNPS/${REPLY}_5x.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}_5x"
+plink2 --bfile "$SNPS/${REPLY}_5x" --double-id --allow-extra-chr --pca --out "$SNPS/${REPLY}_5x"
+
+# We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
+plink2 --vcf "$SNPS/${REPLY}_10x.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}_10x"
+plink2 --bfile "$SNPS/${REPLY}_10x" --double-id --allow-extra-chr --pca --out "$SNPS/${REPLY}_10x"
 
 
 vcftools --vcf "$SNPS/$REPLY.filtered.vcf" --window-pi 100 --out "$SNPS/${REPLY}_100bp"
