@@ -32,6 +32,20 @@ pca <- read.table(paste0(data_path,"/Lactiplantibacillus_plantarum.eigenvec"),se
 colnames(pca)[1] <- "name"
 pca[,2] <- NULL
 
+# How much variance is explained by each PC?
+eigenval <- scan(paste0(data_path,"/Lactiplantibacillus_plantarum.eigenval"))
+variance_explained <- eigenval / sum(eigenval)
+percentage_variance_explained <- variance_explained * 100
+
+
+pca_5 <- read.table(paste0(data_path,"/Lactiplantibacillus_plantarum_5x.eigenvec"),sep=" ",header=F)
+colnames(pca_5)[1] <- "name"
+pca_5[,2] <- NULL
+
+pca_10 <- read.table(paste0(data_path,"/Lactiplantibacillus_plantarum_10x.eigenvec"),sep=" ",header=F)
+colnames(pca_5)[1] <- "name"
+pca_10[,2] <- NULL
+
 metadata_isolates <- fread(metadata_isolates_path, header=T)
 metadata_isolates$Source <- "Isolate"
 
@@ -58,13 +72,57 @@ temp_palette <- c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue")
 ```{r PCA of the SNPs}
 
 pca_merged <- merge(pca, metadata, by = "name")
+pca_pool <- subset(pca_merged, pca_merged$Source=="Pool")
+pca_isolate <- subset(pca_merged, pca_merged$Source=="Isolate")
 
-ggplot(pca_merged, aes(x = V3, y = V4, color = Temperature)) +
-  geom_point(aes(shape=Source)) +
-  labs(x = "PC1", y = "PC2", color = "Temperature", shape="Source") +
+
+ggplot() +
+  geom_point(data = pca_isolate, aes(x = V3, y = V4, color = Temperature, shape = Source), size = 1, alpha = 0.4) +
+  geom_point(data = pca_pool, aes(x = V3, y = V4, color = Temperature, shape = Source), size = 2) +
+  geom_text(data = pca_pool, aes(x = V3, y = V4, label = name, color = Temperature), size = 2, hjust = -0.5) +
+  labs(
+  x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
+  y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
+  color = "Temperature", shape = "Source") +
   scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
   theme_minimal()
 ggsave(filename = paste0(visuals_path,"/Lpla_SNPs_PCA.png"), width = 6, height = 4, dpi = 300)
+
+
+
+ggplot(pca_merged, aes(x = V3, y = V4, color = Temperature)) +
+  #geom_point(aes(shape=Source)) +
+  geom_text(aes(label = name), size = 1) +
+  labs(x = "PC1", y = "PC2", color = "Temperature", shape="Source", title = "PCA of L. plantarum") +
+  scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
+  theme_minimal()
+ggsave(filename = paste0(visuals_path,"/Lpla_SNPs_PCA.png"), width = 6, height = 4, dpi = 300)
+
+# This gives a sparser PCA, but the dots are falsely placed!!!
+jitter_position <- position_jitter(width = 0.05, height = 0.05)
+
+ggplot(pca_merged, aes(x = V3, y = V4, color = Temperature)) +
+  geom_point(aes(shape=Source), size = 1, alpha = 0.6, , position = jitter_position) +
+  geom_text(aes(label = name), size = 1, alpha = 0.6, , position = jitter_position, vjust = -1, hjust = 0.5) +
+  labs(x = "PC1", y = "PC2", color = "Temperature", shape="Source", title = "PCA of L. plantarum (jittered)") +
+  scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
+  theme_minimal()
+
+pca_5_merged <- merge(pca_5, metadata, by = "name")
+
+ggplot(pca_5_merged, aes(x = V3, y = V4, color = Temperature)) +
+  geom_point(aes(shape=Source)) +
+  labs(x = "PC1", y = "PC2", color = "Temperature", shape="Source", title = "PCA of L. plantarum 5x") +
+  scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
+  theme_minimal()
+
+pca_10_merged <- merge(pca_5, metadata, by = "name")
+
+ggplot(pca_10_merged, aes(x = V3, y = V4, color = Temperature)) +
+  geom_point(aes(shape=Source)) +
+  labs(x = "PC1", y = "PC2", color = "Temperature", shape="Source", title = "PCA of L. plantarum 10x") +
+  scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
+  theme_minimal()
 
 ```
 
