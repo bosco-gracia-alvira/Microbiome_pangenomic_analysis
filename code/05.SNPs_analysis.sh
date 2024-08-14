@@ -28,6 +28,13 @@ BAMS="$SNPS/bams"
 IFS="
 "
 
+if [[ ! -f "$REFERENCE" ]]
+then
+        echo -e "The species $REPLY is not availabe :("
+        echo -e "Maybe you have forgotten to run 04.Anvio_popgen_wf.sh"
+        exit
+fi
+
 if [[ ! -f "$RAW_READS" ]]
 then
     mkdir -p "$RAW_READS"
