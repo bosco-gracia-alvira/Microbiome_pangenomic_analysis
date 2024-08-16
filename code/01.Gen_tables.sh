@@ -32,12 +32,28 @@ conda deactivate
 # This script merges the taxonomy and metadata files
 Rscript "$WORKDIR"/../code/01.Reformat_metadata.R
 
-# Ask the user which species to analyse
-echo 'Which of the following species do you want to analyse? Type it in the terminal with the format: "Genus_species"'
-echo 
-cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
-echo
-read
+# First argument of the script is the species to analyse
+REPLY=$1
+
+if [[ -z "$REPLY" ]]
+then
+    echo "You need to provide the species you want to analyse as first argument"
+    echo
+    echo "These are the species that are available for the pangenomic analysis"
+    echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
+    echo
+    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    echo
+    exit
+elif [[ "$REPLY" == "h" ]]
+then
+    echo "These are the species that are available for the pangenomic analysis"
+    echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
+    echo
+    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    echo
+    exit
+fi
 
 # Set the variable SPECIES from the input
 SPECIES=$(echo "$REPLY" | sed 's/_/ /')

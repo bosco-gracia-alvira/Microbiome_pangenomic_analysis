@@ -11,10 +11,29 @@ WORKDIR="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome
 LOCATION_COLD="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Ancestral_microbiome/data/poolseq_reads_cold"
 LOCATION_HOT="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Ancestral_microbiome/data/poolseq_reads_hot"
 
-echo 'Which species do you want to analyse with Anvio? Type in the terminal the species with the format: "Genus_species"'
-echo
-cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
-read
+# First argument of the script is the species to analyse
+REPLY=$1
+
+if [[ -z "$REPLY" ]]
+then
+    echo "You need to provide the species you want to analyse as first argument"
+    echo
+    echo "These are the species that are available for the pangenomic analysis"
+    echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
+    echo
+    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    echo
+    exit
+elif [[ "$REPLY" == "h" ]]
+then
+    echo "These are the species that are available for the pangenomic analysis"
+    echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
+    echo
+    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    echo
+    exit
+fi
+
 SPECIES=$(echo "$REPLY" | sed 's/_/ /')
 SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$8 ~ s {print $1}' "$WORKDIR"/Genome_metadata.tsv | grep -v "user" | sed 's/-/_/g')
 

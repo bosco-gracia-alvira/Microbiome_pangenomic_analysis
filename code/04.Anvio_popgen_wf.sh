@@ -6,17 +6,27 @@
 
 WORKDIR="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data"
 
-# Ask the user which species to analyse
-echo 'Which species do you want to analyse with Anvio? Type in the terminal the species with the format: "Genus_species"'
-echo
-cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
-read
+# First argument of the script is the species to analyse
+REPLY=$1
 
-if [[ ! -f "$WORKDIR"/$REPLY/SuperPang/assembly.fasta ]]
+if [[ -z "$REPLY" ]]
 then
-        echo -e "The species $REPLY is not availabe :("
-        echo -e "Maybe you have forgotten to run 03.Graph_pangenome.sh"
-        exit
+    echo "You need to provide the species you want to analyse as first argument"
+    echo
+    echo "These are the species that are available for the pangenomic analysis"
+    echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
+    echo
+    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    echo
+    exit
+elif [[ "$REPLY" == "h" ]]
+then
+    echo "These are the species that are available for the pangenomic analysis"
+    echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
+    echo
+    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    echo
+    exit
 fi
 
 # Set the paths
