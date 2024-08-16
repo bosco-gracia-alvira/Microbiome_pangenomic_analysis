@@ -50,24 +50,28 @@ metadata_pools <- metadata_pools %>%
 
 metadata <- rbind(metadata_isolates,metadata_pools)
 
-# Create a colour palette for our temperatures
-temp_palette <- c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue")
-
-
 # Merge the eigenvectors and the metadata
 pca_merged <- merge(pca, metadata, by = "name")
 pca_pool <- subset(pca_merged, pca_merged$Source=="Pool")
 pca_isolate <- subset(pca_merged, pca_merged$Source=="Isolate")
 
+# Open a graphics device (e.g., PNG)
+png(filename = paste0(reply, "_PCA_plot.png"))
+
 # Plot the PCA
-ggplot() +
-  geom_point(data = pca_isolate, aes(x = V3, y = V4, color = Temperature, shape = Source), size = 1, alpha = 0.4) +
-  geom_point(data = pca_pool, aes(x = V3, y = V4, color = Temperature, shape = Source), size = 2) +
-  geom_text(data = pca_pool, aes(x = V3, y = V4, label = name, color = Temperature), size = 2, hjust = -0.5) +
-  labs(
-    x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
-    y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
-    color = "Temperature", shape = "Source") +
-  scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
-  theme_minimal()
-ggsave(filename = paste0(visuals_path,reply,"_SNPs_PCA.png"), width = 6, height = 4, dpi = 300)
+plot <- ggplot() +
+            geom_point(data = pca_isolate, aes(x = V3, y = V4, color = Temperature, shape = Source), size = 1, alpha = 0.4) +
+            geom_point(data = pca_pool, aes(x = V3, y = V4, color = Temperature, shape = Source), size = 2) +
+            geom_text(data = pca_pool, aes(x = V3, y = V4, label = name, color = Temperature), size = 2, hjust = -0.5) +
+            labs(
+              x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
+              y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
+              color = "Temperature", shape = "Source") +
+            scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
+            theme_minimal()
+
+# Save the plot using ggsave
+ggsave(filename = paste0(reply,"_SNPs_PCA.png"), plot = plot, path = visuals_path, width = 6, height = 4, dpi = 300)
+
+# Close the graphics device
+dev.off()
