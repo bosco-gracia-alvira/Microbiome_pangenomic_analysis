@@ -186,3 +186,6 @@ plink2 --bfile "$SNPS/${REPLY}_10x" --double-id --allow-extra-chr --pca --out "$
 vcftools --vcf "$SNPS/$REPLY.filtered.vcf" --window-pi 100 --out "$SNPS/${REPLY}_100bp"
 
 vcftools --vcf "$SNPS/$REPLY.filtered.vcf" --TajimaD 100 --out "$SNPS/${REPLY}_100bp"
+
+# This script plots the PCA of the samples based on the SNPs frequency
+Rscript "$WORKDIR"/../code/05.Plot_PCA.R "$REPLY"
