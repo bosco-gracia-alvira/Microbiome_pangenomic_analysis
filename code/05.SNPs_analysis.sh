@@ -139,7 +139,7 @@ do
     rgid="${sample}" \
     threads=auto \
     idtag=t \
-    minid=0.95 > "$LOGS"/bbmap_${name}.log 2>&1
+    minid=0.95 > "$LOGS/bbmap_${name}.log" 2>&1
 
   # Turn the sam into bam and sort it
     samtools view \
