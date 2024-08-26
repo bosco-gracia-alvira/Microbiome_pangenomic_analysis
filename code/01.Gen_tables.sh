@@ -78,6 +78,7 @@ then
     mkdir -p "$GENOMES"
 fi
 
+# Add more pools to the loop if needed
 for i in 503 591 643
 do
     cp "$ASSEMBLY"/Pool_${i}/07.GTDB-Tk/Genomes/*.fasta "$GENOMES"
