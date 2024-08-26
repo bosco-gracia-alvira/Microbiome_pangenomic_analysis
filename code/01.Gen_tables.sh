@@ -13,21 +13,24 @@ GENOMES="$WORKDIR"/Isolates
 IFS="
 "
 
-# Create the taxonomy, checkm and metadata files
+# Create the taxonomy, checkm and metadata files and keep only the latest assembly from each sample
  cat "$ASSEMBLY"/Pool_503/07.GTDB-Tk/gtdbtk.bac120.summary.tsv > "$WORKDIR"/taxonomy.tsv
  tail -n +2 "$ASSEMBLY"/Pool_591/07.GTDB-Tk/gtdbtk.bac120.summary.tsv >> "$WORKDIR"/taxonomy.tsv
  tail -n +2 "$ASSEMBLY"/Pool_643/07.GTDB-Tk/gtdbtk.bac120.summary.tsv >> "$WORKDIR"/taxonomy.tsv
+ awk -F'\t' 'NR==1 {header=$0; next} {data[$1]=$0} END {print header; for (name in data) print data[name]}' "$WORKDIR"/taxonomy.tsv > "$WORKDIR"/taxonomy_unique.tsv
 
  cat "$ASSEMBLY"/Pool_503/04.CheckM2/quality_report.tsv > "$WORKDIR"/checkm.tsv
  tail -n +2 "$ASSEMBLY"/Pool_591/04.CheckM2/quality_report.tsv >> "$WORKDIR"/checkm.tsv
  tail -n +2 "$ASSEMBLY"/Pool_643/04.CheckM2/quality_report.tsv >> "$WORKDIR"/checkm.tsv
+ awk -F'\t' 'NR==1 {header=$0; next} {data[$1]=$0} END {print header; for (name in data) print data[name]}' "$WORKDIR"/checkm.tsv > "$WORKDIR"/checkm_unique.tsv
 
  cat "$ASSEMBLY"/Pool_503/metadata.tsv > "$WORKDIR"/metadata.tsv
  echo "" >> "$WORKDIR"/metadata.tsv
  tail -n +2 "$ASSEMBLY"/Pool_591/metadata.tsv >> "$WORKDIR"/metadata.tsv
  echo "" >> "$WORKDIR"/metadata.tsv
  tail -n +2 "$ASSEMBLY"/Pool_643/metadata.tsv >> "$WORKDIR"/metadata.tsv
-
+ awk -F'\t' 'NR==1 {header=$0; next} {data[$3]=$0} END {print header; for (name in data) print data[name]}' "$WORKDIR"/metadata.tsv > "$WORKDIR"/metadata_unique.tsv
+ 
 # The R script has to be run using the native R. It does not work with Anvio's R
 conda deactivate
 
