@@ -77,7 +77,11 @@ if [[ ! -f "$GENOMES" ]]
 then
     mkdir -p "$GENOMES"
 fi
-cp "$ASSEMBLY"/Pool_??3/07.GTDB-Tk/Genomes/*.fasta "$GENOMES"
+
+for i in 503 591 643
+do
+    cp "$ASSEMBLY"/Pool_${i}/07.GTDB-Tk/Genomes/*.fasta "$GENOMES"
+done
 
 # Pick the samples that belong to the species of interest
 SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' "$WORKDIR"/taxonomy.tsv | grep -v "user" | sed 's/-/_/g')
