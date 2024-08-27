@@ -12,15 +12,9 @@ ISOLATES="$WORKDIR/Isolates"
 IFS="
 "
 
-# Create the SuperPang directory
-if [[ ! -f "$WORKDIR"/"$REPLY"/SuperPang ]]
-then
-    mkdir -p "$WORKDIR"/"$REPLY"/SuperPang
-fi
-
 # First argument of the script is the species to analyse
 REPLY=$1
-
+REPLY="Morganella_morganii_B"
 if [[ -z "$REPLY" ]]
 then
     echo "You need to provide the species you want to analyse as first argument"
@@ -28,7 +22,7 @@ then
     echo "These are the species that are available for the pangenomic analysis"
     echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
     echo
-    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    cut -f2 "$WORKDIR"/taxonomy.tsv | awk -F 's__' '{print $2}' | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
     echo
     exit
 elif [[ "$REPLY" == "h" ]]
@@ -36,7 +30,7 @@ then
     echo "These are the species that are available for the pangenomic analysis"
     echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
     echo
-    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    cut -f2 "$WORKDIR"/taxonomy.tsv | awk -F 's__' '{print $2}' | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
     echo
     exit
 fi
@@ -44,6 +38,17 @@ fi
 # Set the variable SPECIES from the input and pick the samples that belong to the species of interest
 SPECIES=$(echo "$REPLY" | sed 's/_/ /')
 SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' "$WORKDIR"/taxonomy.tsv | grep -v "user")
+
+species_count=$(cut -f2 "$WORKDIR"/taxonomy.tsv | awk -F 's__' '{print $2}' | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column)
+count=$(echo "$species_count" | grep -w "$REPLY" | awk '{print $1}')
+
+# Check if the count is equal to 1
+if [ "$count" -eq 1 ]; then
+  echo "There is only one genome available for the species $REPLY." There is no need to make a graph pangenome.
+  exit
+else
+  echo "There are $count genomes available for the species $REPLY." Thus, we will make a pangenome.
+fi
 
 # Create the folder for the species
 ssh -T vetlinux05@pgnsrv043.vu-wien.ac.at << FOO

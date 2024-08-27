@@ -50,7 +50,7 @@ then
     echo "These are the species that are available for the pangenomic analysis"
     echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
     echo
-    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    cut -f2 "$WORKDIR"/taxonomy.tsv | awk -F 's__' '{print $2}' | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
     echo
     exit
 elif [[ "$REPLY" == "h" ]]
@@ -58,7 +58,7 @@ then
     echo "These are the species that are available for the pangenomic analysis"
     echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
     echo
-    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    cut -f2 "$WORKDIR"/taxonomy.tsv | awk -F 's__' '{print $2}' | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
     echo
     exit
 fi
