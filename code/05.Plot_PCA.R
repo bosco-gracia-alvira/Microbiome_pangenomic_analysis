@@ -21,7 +21,7 @@ setwd(paste0("/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Micro
 
 # Paths to the files that we want to import
 data_path <- paste0("/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/",reply,"/SNPs_analysis/")
-metadata_isolates_path <- paste0("/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/",reply,"/Anvio/Anvio_misc.tsv")
+metadata_isolates_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Anvio_misc.tsv"
 visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals/"
 
 pca <- read.table(paste0(data_path,reply,".eigenvec"),sep=" ",header=F)
@@ -33,8 +33,10 @@ eigenval <- scan(paste0(data_path,reply,".eigenval"))
 variance_explained <- eigenval / sum(eigenval)
 percentage_variance_explained <- variance_explained * 100
 
-# Import the metadata
+# Import the metadata of all the isolates and subset those present in the PCA
 metadata_isolates <- fread(metadata_isolates_path, header=T)
+metadata_isolates <- metadata_isolates %>%
+  filter(name %in% pca$name)
 metadata_isolates$Source <- "Isolate"
 
 metadata_pools <- as.data.frame(pca$name[grepl("^cF|^hF", pca$name)])
