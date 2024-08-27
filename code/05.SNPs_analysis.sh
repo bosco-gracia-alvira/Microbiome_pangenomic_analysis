@@ -213,7 +213,8 @@ bcftools reheader -h "$SNPS/headers.txt" -o "$SNPS/$REPLY.vcf" "$SNPS/temp_$REPL
 # We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
 plink2 --vcf "$SNPS/${REPLY}.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}"
 plink2 --bfile "$SNPS/${REPLY}" --double-id --allow-extra-chr --pca --out "$SNPS/${REPLY}"
-plink2 --bfile "$SNPS/${REPLY}" --read-freq "$SNPS/${REPLY}.afreq" --score "$SNPS/${REPLY}.eigenvec.var" 2 3 header-read --out "$SNPS/${REPLY}_loadings"
+
+rm "$SNPS/temp_$REPLY.vcf"
 
 # Move the results to the working directory and remove the temporary directory
 mv "$SNPS" "$WORKDIR/${REPLY}/"
