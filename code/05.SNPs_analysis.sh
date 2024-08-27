@@ -71,6 +71,7 @@ then
 fi
 
 # We reformat the reference genome to match the names used in the Anvio_popgen workflow
+eval "$(conda shell.bash hook)"
 conda activate anvio-7.1
 
 anvi-script-reformat-fasta \
@@ -192,29 +193,14 @@ done
 bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" --threads 16 | \
     bcftools call  --ploidy 1 -Ou -mv | bcftools view -i 'QUAL>20 && DP>5' - > "$SNPS/$REPLY.vcf"
 
-# bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -d 5 --threads 16 | \
-#     bcftools call  --threads 8 --ploidy 1 -Ou -mv | bcftools view -i 'QUAL>20 && DP>5' - > "$SNPS/${REPLY}_5x.vcf"
-
-# bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_10.txt" -d 10 --threads 16 | \
-#     bcftools call  --threads 8 --ploidy 1 -Ou -mv | bcftools view -i 'QUAL>20 && DP>10' - > "$SNPS/${REPLY}_10x.vcf"
-
 # We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
 plink2 --vcf "$SNPS/${REPLY}.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}"
 plink2 --bfile "$SNPS/${REPLY}" --double-id --allow-extra-chr --pca --out "$SNPS/${REPLY}"
 plink2 --bfile "$SNPS/${REPLY}" --read-freq "$SNPS/${REPLY}.afreq" --score "$SNPS/${REPLY}.eigenvec.var" 2 3 header-read --out "$SNPS/${REPLY}_loadings"
 
-# # We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
-# plink2 --vcf "$SNPS/${REPLY}_5x.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}_5x"
-# plink2 --bfile "$SNPS/${REPLY}_5x" --double-id --allow-extra-chr --pca --out "$SNPS/${REPLY}_5x"
-
-# # We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
-# plink2 --vcf "$SNPS/${REPLY}_10x.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}_10x"
-# plink2 --bfile "$SNPS/${REPLY}_10x" --double-id --allow-extra-chr --pca --out "$SNPS/${REPLY}_10x"
-
-
-# vcftools --vcf "$SNPS/$REPLY.filtered.vcf" --window-pi 100 --out "$SNPS/${REPLY}_100bp"
-
-# vcftools --vcf "$SNPS/$REPLY.filtered.vcf" --TajimaD 100 --out "$SNPS/${REPLY}_100bp"
+# Move the results to the working directory and remove the temporary directory
+mv "$SNPS" "$WORKDIR/${REPLY}/"
+rm -r "$LOCAL/${REPLY}"
 
 # This script plots the PCA of the samples based on the SNPs frequency
 Rscript "$WORKDIR"/../code/05.Plot_PCA.R "$REPLY"
