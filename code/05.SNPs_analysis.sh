@@ -72,9 +72,13 @@ fi
 
 # We reformat the reference genome to match the names used in the Anvio_popgen workflow
 conda activate anvio-7.1
-anvi-script-reformat-fasta "$REFERENCE" \
-                           -o "$SNPS"/ref.fa \
-                           --simplify-names
+
+anvi-script-reformat-fasta \
+        -l 250 \
+        -o "$SNPS"/ref.fa \
+        --simplify-names \
+        "$REFERENCE"
+
 samtools faidx "$SNPS"/ref.fa
 conda deactivate
 
