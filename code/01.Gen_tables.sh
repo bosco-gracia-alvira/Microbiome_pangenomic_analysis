@@ -67,9 +67,9 @@ fi
 SPECIES=$(echo "$REPLY" | sed 's/_/ /')
 
 # Create the Anvio directory
-if [[ ! -f "$WORKDIR"/$REPLY/Anvio ]]
+if [[ ! -f "$WORKDIR"/$REPLY/Anvio_pangen ]]
 then
-    mkdir -p "$WORKDIR"/$REPLY/Anvio
+    mkdir -p "$WORKDIR"/$REPLY/Anvio_pangen
 fi
 
 # Create the genomes directory and copy all the available genomes to it
@@ -88,28 +88,28 @@ done
 SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' "$WORKDIR"/taxonomy.tsv | grep -v "user" | sed 's/-/_/g')
 
 # Create a new fasta-txt file in the Anvio directory
-head -n 1 "$WORKDIR"/fasta-txt > "$WORKDIR"/$REPLY/Anvio/fasta-txt
+head -n 1 "$WORKDIR"/fasta-txt > "$WORKDIR"/$REPLY/Anvio_pangen/fasta-txt
 
 # Populate it with the samples of interest
 for i in $SAMPLES
 do
-        grep -w "$i" "$WORKDIR"/fasta-txt >> "$WORKDIR"/$REPLY/Anvio/fasta-txt
+        grep -w "$i" "$WORKDIR"/fasta-txt >> "$WORKDIR"/$REPLY/Anvio_pangen/fasta-txt
 done
 
 # Create a new samples-txt file in the Anvio directory
-head -n 1 "$WORKDIR"/samples-txt > "$WORKDIR"/$REPLY/Anvio/samples-txt
+head -n 1 "$WORKDIR"/samples-txt > "$WORKDIR"/$REPLY/Anvio_pangen/samples-txt
 
 # Populate it with the samples of interest
 for i in $SAMPLES
 do
-        grep -w "$i" "$WORKDIR"/samples-txt >> "$WORKDIR"/$REPLY/Anvio/samples-txt
+        grep -w "$i" "$WORKDIR"/samples-txt >> "$WORKDIR"/$REPLY/Anvio_pangen/samples-txt
 done
 
 # Create a new misc file in the Anvio directory
-head -n 1 "$WORKDIR"/Anvio_misc.tsv > "$WORKDIR"/$REPLY/Anvio/Anvio_misc.tsv
+head -n 1 "$WORKDIR"/Anvio_misc.tsv > "$WORKDIR"/$REPLY/Anvio_pangen/Anvio_misc.tsv
 
 # Populate it with the samples of interest
 for i in $SAMPLES
 do
-        grep -w "$i" "$WORKDIR"/Anvio_misc.tsv >> "$WORKDIR"/$REPLY/Anvio/Anvio_misc.tsv
+        grep -w "$i" "$WORKDIR"/Anvio_misc.tsv >> "$WORKDIR"/$REPLY/Anvio_pangen/Anvio_misc.tsv
 done
