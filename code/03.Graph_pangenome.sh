@@ -14,7 +14,7 @@ IFS="
 
 # First argument of the script is the species to analyse
 REPLY=$1
-REPLY="Morganella_morganii_B"
+
 if [[ -z "$REPLY" ]]
 then
     echo "You need to provide the species you want to analyse as first argument"
@@ -39,7 +39,7 @@ fi
 SPECIES=$(echo "$REPLY" | sed 's/_/ /')
 SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$2 ~ s {print $1}' "$WORKDIR"/taxonomy.tsv | grep -v "user")
 
-species_count=$(cut -f2 "$WORKDIR"/taxonomy.tsv | awk -F 's__' '{print $2}' | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column)
+species_count=$(cut -f2 "$WORKDIR"/taxonomy.tsv | awk -F 's__' '{print $2}' | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r)
 count=$(echo "$species_count" | grep -w "$REPLY" | awk '{print $1}')
 
 # Check if the count is equal to 1

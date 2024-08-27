@@ -22,7 +22,7 @@ then
     echo "These are the species that are available for the pangenomic analysis"
     echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
     echo
-    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    cut -f2 "$WORKDIR"/taxonomy.tsv | awk -F 's__' '{print $2}' | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
     echo
     exit
 elif [[ "$REPLY" == "h" ]]
@@ -30,7 +30,7 @@ then
     echo "These are the species that are available for the pangenomic analysis"
     echo "Copy the name of the species you want to analyse and paste it as first argument of the script"
     echo
-    cut -f2 "$WORKDIR"/taxonomy.tsv | rev | cut -d "_" -f1 | rev | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
+    cut -f2 "$WORKDIR"/taxonomy.tsv | awk -F 's__' '{print $2}' | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r | column
     echo
     exit
 fi
@@ -38,7 +38,20 @@ fi
 SPECIES=$(echo "$REPLY" | sed 's/_/ /')
 SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$8 ~ s {print $1}' "$WORKDIR"/Genome_metadata.tsv | grep -v "user" | sed 's/-/_/g')
 
-REFERENCE="$WORKDIR/${REPLY}/SuperPang/assembly.fasta"
+# Evaluate the number of genomes available for the species
+species_count=$(cut -f2 "$WORKDIR"/taxonomy.tsv | awk -F 's__' '{print $2}' | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r)
+count=$(echo "$species_count" | grep -w "$REPLY" | awk '{print $1}')
+
+# If there is only one genome available, we will use it as reference
+if [ "$count" -eq 1 ]; then
+  echo "There is only one genome available for the species $REPLY." This genome will be used as reference.
+  genome=$(grep "$SPECIES" "$WORKDIR"/Genome_metadata.tsv | awk -F "\t" '{print $1}')
+  REFERENCE="$WORKDIR/Isolates/${genome}.fasta"
+else
+  echo "There are $count genomes available for the species $REPLY." Thus, we will use the pangenome as reference.
+  REFERENCE="$WORKDIR/${REPLY}/SuperPang/assembly.fasta"
+fi
+
 SNPS="$LOCAL/${REPLY}/SNPs_analysis"
 RAW_READS="$SNPS/reads"
 LOGS="$SNPS/logs"
@@ -121,7 +134,6 @@ do
         fi
 done < "$SNPS/genomes_reads.txt"
 
-
 # Map the reads to the reference pangenome
 
 # Create an index for the reference combined genome
@@ -181,11 +193,11 @@ awk '$2 >= 5 {print "./bams/"$1"_sorted.bam"}' "$SNPS/coverage.txt" | grep -v "s
 # Remove the bams whose coverage is below 10
 for i in "$BAMS"/*_sorted.bam; do
     mean_coverage=$(samtools depth "$i" | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}')
-    if (( $(echo "$mean_coverage > 10" | bc -l) )); then
-        echo "Keeping $bam with mean coverage $mean_coverage"
+    if (( $(echo "$mean_coverage >= 5" | bc -l) )); then
+        echo "Keeping $i with mean coverage $mean_coverage"
     else
-        echo "Discarding $bam with mean coverage $mean_coverage"
-        rm "$bam"
+        echo "Discarding $i with mean coverage $mean_coverage"
+        rm "$i"
     fi
 done
 
