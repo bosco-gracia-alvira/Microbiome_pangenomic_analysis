@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script runs Anvio population genomics analysis for the desired species
+# This script maps the reads to the species reference pangenome and calculates the SNPs
 # Bosco Gracia Alvira, 2024
 
 ### VARIABLES
@@ -38,7 +38,7 @@ fi
 SPECIES=$(echo "$REPLY" | sed 's/_/ /')
 SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$8 ~ s {print $1}' "$WORKDIR"/Genome_metadata.tsv | grep -v "user" | sed 's/-/_/g')
 
-REFERENCE="$WORKDIR/${REPLY}/Anvio_popgen/${REPLY}_pangenome.fasta"
+REFERENCE="$WORKDIR/${REPLY}/SuperPang/assembly.fasta"
 SNPS="$LOCAL/${REPLY}/SNPs_analysis"
 RAW_READS="$SNPS/reads"
 LOGS="$SNPS/logs"
@@ -51,7 +51,7 @@ IFS="
 if [[ ! -f "$REFERENCE" ]]
 then
         echo -e "The species $REPLY is not availabe :("
-        echo -e "Maybe you have forgotten to run 04.Anvio_popgen_wf.sh"
+        echo -e "Maybe you have forgotten to run 03.Graph_pangenome.sh"
         exit
 fi
 
@@ -70,8 +70,13 @@ then
     mkdir -p "$LOGS"
 fi
 
-cp "$REFERENCE" "$SNPS"/ref.fa
+# We reformat the reference genome to match the names used in the Anvio_popgen workflow
+conda activate anvio-7.1
+anvi-script-reformat-fasta "$REFERENCE" \
+                           -o "$SNPS"/ref.fa \
+                           --simplify-names
 samtools faidx "$SNPS"/ref.fa
+conda deactivate
 
 # Link the poolseq reads sets to the working directory
 for i in $(basename "$LOCATION_HOT"/F*)
