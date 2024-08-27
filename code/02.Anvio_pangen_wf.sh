@@ -35,7 +35,7 @@ then
 fi
 
 # If the fasta-txt is not available we cannot do the analysis!
-if [[ ! -f "$WORKDIR"/$REPLY/Anvio/fasta-txt ]]
+if [[ ! -f "$WORKDIR"/$REPLY/Anvio_pangen/fasta-txt ]]
 then    
         echo
         echo
@@ -48,7 +48,7 @@ fi
 eval "$(conda shell.bash hook)"
 conda activate anvio-7.1
 
-cd "$WORKDIR"/"$REPLY"/Anvio || exit
+cd "$WORKDIR"/"$REPLY"/Anvio_pangen || exit
 
 anvi-run-workflow -w contigs \
                   -c ../../../code/02.config-contig.json
@@ -58,19 +58,19 @@ anvi-run-workflow -w pangenomics \
 
 # Import the misc data that was created in 01.Gen_tables.sh
 anvi-import-misc-data \
-        "$WORKDIR"/$REPLY/Anvio/Anvio_misc.tsv \
-        -p "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-PAN.db \
+        "$WORKDIR"/$REPLY/Anvio_pangen/Anvio_misc.tsv \
+        -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-PAN.db \
         -t layers
 
 # Phylogenomic tree of the species
 # Extract the SCGs from the pangenome. SCGs must be found in all the genomes and only once
-SAMPLES=$(cut -f1 "$WORKDIR"/$REPLY/Anvio/fasta-txt | grep -v "name")
+SAMPLES=$(cut -f1 "$WORKDIR"/$REPLY/Anvio_pangen/fasta-txt | grep -v "name")
 NUM=$(echo $SAMPLES | wc -w)
 
 anvi-get-sequences-for-gene-clusters \
-        -g "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-GENOMES.db \
-        -p "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-PAN.db \
-        -o "$WORKDIR"/"$REPLY"/Anvio/03_PAN/SCGs.fa \
+        -g "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-GENOMES.db \
+        -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-PAN.db \
+        -o "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/SCGs.fa \
         --min-num-genes-from-each-genome 1 \
         --max-num-genes-from-each-genome 1 \
         --max-functional-homogeneity-index 0.99 \
@@ -79,29 +79,29 @@ anvi-get-sequences-for-gene-clusters \
 
 # Generate a phylogenomic tree
 anvi-gen-phylogenomic-tree \
-        -f "$WORKDIR"/"$REPLY"/Anvio/03_PAN/SCGs.fa \
-        -o "$WORKDIR"/"$REPLY"/Anvio/03_PAN/phylogenomic-tree.txt
+        -f "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/SCGs.fa \
+        -o "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/phylogenomic-tree.txt
 
 # We cannot include the tree as it is in the Anvi'o profile database, so we transform it into a misc-data file:
-echo -e "item_name\tdata_type\tdata_value" > "$WORKDIR"/"$REPLY"/Anvio/03_PAN/header.tmp
-echo -e "phylogeny\tnewick\t$(cat "$WORKDIR"/"$REPLY"/Anvio/03_PAN/phylogenomic-tree.txt)" > "$WORKDIR"/"$REPLY"/Anvio/03_PAN/body.tmp
-cat "$WORKDIR"/"$REPLY"/Anvio/03_PAN/header.tmp "$WORKDIR"/"$REPLY"/Anvio/03_PAN/body.tmp > "$WORKDIR"/"$REPLY"/Anvio/03_PAN/phylogeny_order.txt
-rm "$WORKDIR"/"$REPLY"/Anvio/03_PAN/*.tmp
+echo -e "item_name\tdata_type\tdata_value" > "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/header.tmp
+echo -e "phylogeny\tnewick\t$(cat "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/phylogenomic-tree.txt)" > "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/body.tmp
+cat "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/header.tmp "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/body.tmp > "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/phylogeny_order.txt
+rm "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/*.tmp
 
 # Finally we import it into the profile databases:
-anvi-import-misc-data "$WORKDIR"/"$REPLY"/Anvio/03_PAN/phylogeny_order.txt \
-                      -p "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-PAN.db \
+anvi-import-misc-data "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/phylogeny_order.txt \
+                      -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-PAN.db \
                       -t layer_orders \
                       --just-do-it
 
 # Test if there are functional differences between the genomes from each temperature regime
-mkdir -p "$WORKDIR"/"$REPLY"/Anvio/03_PAN/Functional_enrichment
+mkdir -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/Functional_enrichment
 for i in {COG20_FUNCTION,Pfam,KEGG_Module,KOfam,COG20_PATHWAY,KEGG_Class,COG20_CATEGORY}
 do      
         anvi-compute-functional-enrichment-in-pan \
-        -p "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-PAN.db \
-        -g "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-GENOMES.db \
+        -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-PAN.db \
+        -g "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-GENOMES.db \
         --category-variable Temperature \
         --annotation-source "${i}" \
-        -o "$WORKDIR"/"$REPLY"/Anvio/03_PAN/Functional_enrichment/"${i}"-enrichment.txt 
+        -o "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/Functional_enrichment/"${i}"-enrichment.txt 
 done

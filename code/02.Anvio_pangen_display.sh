@@ -35,7 +35,7 @@ then
 fi
 
 # If the fasta-txt is not available we cannot do the analysis!
-if [[ ! -f "$WORKDIR"/$REPLY/Anvio/03_PAN/MYPAN-PAN.db ]]
+if [[ ! -f "$WORKDIR"/$REPLY/Anvio_pangen/03_PAN/MYPAN-PAN.db ]]
 then    
         echo
         echo
@@ -49,5 +49,5 @@ eval "$(conda shell.bash hook)"
 conda activate anvio-7.1
 
 anvi-display-pan \
-        -g "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-GENOMES.db \
-        -p "$WORKDIR"/"$REPLY"/Anvio/03_PAN/MYPAN-PAN.db
+        -g "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-GENOMES.db \
+        -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-PAN.db
