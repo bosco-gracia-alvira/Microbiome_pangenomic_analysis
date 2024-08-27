@@ -64,7 +64,7 @@ png(filename = paste0(reply, "_PCA_plot.png"))
 plot <- ggplot() +
             geom_point(data = pca_isolate, aes(x = V3, y = V4, color = Temperature, shape = Source), size = 1, alpha = 0.4) +
             geom_point(data = pca_pool, aes(x = V3, y = V4, color = Temperature, shape = Source), size = 2) +
-            geom_text(data = pca_pool, aes(x = V3, y = V4, label = name, color = Temperature), size = 2, hjust = -0.5) +
+            geom_text(data = pca_pool, aes(x = V3, y = V4, label = name, color = Temperature), size = 1.5, hjust = -0.5) +
             labs(
               x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
               y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
