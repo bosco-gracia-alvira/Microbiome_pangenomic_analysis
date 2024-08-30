@@ -203,7 +203,8 @@ done
 
 # This command calculates allele frequencies in all the positions, then does gene calling and finally changes the sample IDs, that originally include the whole path to the bam file and the .bam extension
 bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" --threads 16 | \
-    bcftools call  --ploidy 1 -Ou -mv | bcftools view -i 'QUAL>20 && DP>5' - > "$SNPS/temp_$REPLY.vcf"
+    bcftools call  --ploidy 1 -Ou -mv | \
+    bcftools view -i 'QUAL>20 && DP>5' - > "$SNPS/temp_$REPLY.vcf"
 
 bcftools view -h "$SNPS/temp_$REPLY.vcf" > "$SNPS/headers.txt"
 sed -i '' 's|./bams/||g; s|_sorted.bam||g' "$SNPS/headers.txt"
@@ -217,7 +218,7 @@ plink2 --bfile "$SNPS/${REPLY}" --double-id --allow-extra-chr --pca --out "$SNPS
 rm "$SNPS/temp_$REPLY.vcf"
 
 # Move the results to the working directory and remove the temporary directory
-mv "$SNPS" "$WORKDIR/${REPLY}/"
+rsync -av --remove-source-files "$SNPS" "$WORKDIR/${REPLY}/"
 rm -r "${LOCAL:?}/${REPLY:?}"
 
 # This script plots the PCA of the samples based on the SNPs frequency
