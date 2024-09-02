@@ -74,7 +74,7 @@ plot <- ggplot() +
             theme_minimal()
 
 # Save the plot using ggsave
-ggsave(filename = paste0(reply,"_SNPs_PCA.png"), plot = plot, path = visuals_path, width = 6, height = 4, dpi = 300)
+ggsave(filename = paste0("PCA_SNPs_",reply,".png"), plot = plot, path = visuals_path, width = 6, height = 4, dpi = 300)
 
 # Close the graphics device
 dev.off()
