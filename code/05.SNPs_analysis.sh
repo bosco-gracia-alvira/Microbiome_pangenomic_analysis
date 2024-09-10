@@ -211,6 +211,9 @@ bcftools view -h "$SNPS/temp_$REPLY.vcf" > "$SNPS/headers.txt"
 sed -i '' 's|./bams/||g; s|_sorted.bam||g' "$SNPS/headers.txt"
 bcftools reheader -h "$SNPS/headers.txt" -o "$SNPS/$REPLY.vcf" "$SNPS/temp_$REPLY.vcf"
 
+# We extract the frequency of the SNPs in each sample
+bcftools query -H -f '%CHROM\t%POS\t%REF\t%ALT[\t%DP\t%AD]\n' "$SNPS/$REPLY.vcf" > "$SNPS/$REPLY.freq"
+
 # We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
 plink2 --vcf "$SNPS/${REPLY}.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}"
 plink2 --bfile "$SNPS/${REPLY}" --double-id --allow-extra-chr --pca --out "$SNPS/${REPLY}"
