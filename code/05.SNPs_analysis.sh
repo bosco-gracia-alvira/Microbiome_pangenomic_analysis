@@ -177,9 +177,12 @@ do
     # Delete the sam to save space
     rm "$BAMS/${sample}.sam"
 
-    # Calculate the mean coverage of the sample
-    mean_coverage=$(samtools depth "$BAMS/${sample}_sorted.bam" | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}')
-
+    # Calculate the mean coverage of the sample (Truncated coverage 80%)
+    mean_coverage=$(
+        samtools depth "$BAMS/${sample}_sorted.bam" | \
+        sort -k3,3nr | \
+        awk '{ all[NR] = $3; sum+=$3 } END {if (NR==0) print 0; else { for (i=int(NR*0.1)+1; i<=int(NR*0.9); i++) s+=all[i]; print s/(int(NR*0.9)-int(NR*0.1)) } }')
+        #samtools depth "$BAMS/${sample}_sorted.bam" | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}'
     # Append the mean coverage to the coverage file
     echo -e "${sample}\t${mean_coverage}" >> "$SNPS/coverage.txt"
 done
@@ -204,7 +207,7 @@ done
 # This chunk counts the reference and alternative allele frequency in each position and in each sample (mpileup), then calls the SNPs (call) and filters the SNPs (no indels) with a quality above 20 and a depth above 5 
 bcftools mpileup -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -Q 20 -D -d 50 -a DP,AD,QS,SCR -Ou --threads 16 | \
     bcftools call  --ploidy 1 -Ou -cv --threads 16 | \
-    bcftools view -i 'QUAL>20 && FORMAT/DP>5' -v snps -m2 -M2 -Ov - > "$SNPS/temp_$REPLY.vcf"
+    bcftools view -i 'QUAL > 20' -e 'FORMAT/DP[:0] < 3' -v snps -m2 -M2 -Ov - > "$SNPS/temp_$REPLY.vcf"
 
 # We reformat the headers of the VCF file, that by default include the relative path to the bams
 bcftools view -h "$SNPS/temp_$REPLY.vcf" > "$SNPS/headers.txt"
