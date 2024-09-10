@@ -201,15 +201,15 @@ for i in "$BAMS"/*_sorted.bam; do
     fi
 done
 
-# This command calculates allele frequencies in all the positions, then does gene calling and finally changes the sample IDs, that originally include the whole path to the bam file and the .bam extension
-bcftools mpileup -Ou -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" --threads 16 | \
-    bcftools call  --ploidy 1 -Ou -mv | \
-    bcftools view -i 'QUAL>20 && DP>5' - > "$SNPS/temp_$REPLY.vcf"
+# This chunk counts the reference and alternative allele frequency in each position and in each sample (mpileup), then calls the SNPs (call) and filters the SNPs (no indels) with a quality above 20 and a depth above 5 
+bcftools mpileup -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -Q 20 -D -d 50 -a DP,AD,QS,SCR -Ou --threads 16 | \
+    bcftools call  --ploidy 1 -Ou -cv --threads 16 | \
+    bcftools view -i 'QUAL>20 && FORMAT/DP>5' -v snps -m2 -M2 -Ov - > "$SNPS/temp_$REPLY.vcf"
 
+# We reformat the headers of the VCF file, that by default include the relative path to the bams
 bcftools view -h "$SNPS/temp_$REPLY.vcf" > "$SNPS/headers.txt"
 sed -i '' 's|./bams/||g; s|_sorted.bam||g' "$SNPS/headers.txt"
 bcftools reheader -h "$SNPS/headers.txt" -o "$SNPS/$REPLY.vcf" "$SNPS/temp_$REPLY.vcf"
-
 
 # We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
 plink2 --vcf "$SNPS/${REPLY}.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}"
