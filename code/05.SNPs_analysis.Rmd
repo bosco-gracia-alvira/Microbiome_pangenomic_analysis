@@ -28,6 +28,71 @@ data_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Micro
 metadata_isolates_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Anvio/Anvio_misc.tsv"
 visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
 
+# freq is the table that comes from the vcf query that contains allele frequencies for each sample
+freq <- fread(paste0(data_path,"/Lactiplantibacillus_plantarum.freq"),sep="\t",header=T)
+
+# Make the headers pretty :)
+colnames(freq) <- gsub("^#", "", colnames(freq))          # Remove "#"
+colnames(freq) <- gsub("^\\[.*?\\]", "", colnames(freq))  # Remove anything between brackets
+colnames(freq) <- gsub(":AD$", "", colnames(freq))        # Remove ":AD"
+
+# Melt the dataframe to long format
+freq_long <- data.table::melt(freq, id.vars = colnames(freq)[1:4], variable.name = "Sample", value.name = "AF")
+
+# Split the AF column into Reference and alternative using "," as splitting element
+freq_long <- freq_long[, c("RO", "AO") := tstrsplit(AF, ",")]
+
+# Turn the new columns numeric
+freq_long <- freq_long[, `:=`(RO = as.numeric(RO), AO = as.numeric(AO))]
+
+# Calculate the summed allele depth (SAD) and relative frequencies from absolute number of counts
+freq_long <- freq_long[, "SAD" := (RO + AO)]
+freq_long <- freq_long[, `:=`(RO = RO / (RO + AO), AO = AO / (RO + AO))]
+
+# Create a new column with unique position information
+freq_long <- freq_long %>%
+  mutate(CHROM_POS = paste(CHROM, POS, sep = "_"))
+
+# Make the table wide again
+freq_wide <- freq_long %>%
+  select(Sample, CHROM_POS, RO) %>%  # Select relevant columns
+  pivot_wider(names_from = CHROM_POS, values_from = RO) %>%  # Pivot to wide format
+  column_to_rownames(var = "Sample")  # Set Sample as row names
+
+# Remove problematic samples hF130
+freq_wide <- freq_wide[rownames(freq_wide) != "hF130", ]
+
+# Remove the columns (SNPs) that are missing in at least 1 sample
+freq_wide <- freq_wide %>%
+  select_if(~ !any(is.nan(.)))
+
+# Transform data to arcosin
+freq_asin <- 2*asin(sqrt(freq_wide))
+
+pca.res <- prcomp(freq_asin, retx=TRUE, center = FALSE, scale. =FALSE)
+
+#Visualize eigenvalues (scree plot).
+  #print(fviz_eig(pca.res))
+  
+  #Show the percentage of variances explained by each principal component.
+  #print(fviz_contrib(pca.res, choice = "var", axes = 1:2, top = 10))
+  
+  #if mean.point = TRUE group means are added for each group, specified by coloring_factor
+  print(fviz_pca_ind(pca.res,
+                     repel = TRUE,   # Avoid text overlapping
+                     mean.point = FALSE,
+                     addEllipses=FALSE)) # Default parameters for ellipses
+
+
+
+result <- freq_long %>%
+  group_by(Sample) %>%
+  summarise(
+    SFS = list(table(AF)),
+    Median_RO = median(RO)
+  )
+
+
 pca <- read.table(paste0(data_path,"/Lactiplantibacillus_plantarum.eigenvec"),sep=" ",header=F)
 colnames(pca)[1] <- "name"
 pca[,2] <- NULL
