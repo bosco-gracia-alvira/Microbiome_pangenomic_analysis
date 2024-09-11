@@ -207,8 +207,8 @@ done
 # This chunk counts the reference and alternative allele frequency in each position and in each sample (mpileup), then calls the SNPs (call) and filters the SNPs (no indels) with a quality above 20 and a depth above 5 
 bcftools mpileup -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -Q 20 -D -d 50 -a DP,AD,QS,SCR -Ou --threads 16 | \
     bcftools call  --ploidy 1 -Ou -cv --threads 16 | \
-    bcftools view -i 'QUAL > 20' -v snps -m2 -M2 -Ou - |\
-    bcftools view -e 'FORMAT/DP[:0] < 3' -Ov - > "$SNPS/temp_$REPLY.vcf"
+    bcftools view -i 'QUAL > 20' -v snps -m2 -M2 -Ov - > "$SNPS/temp_$REPLY.vcf"
+    # bcftools view -e 'FORMAT/DP[:0] < 3' -Ov - Filtering can be done in the R analysis step
 
 # We reformat the headers of the VCF file, that by default include the relative path to the bams
 bcftools view -h "$SNPS/temp_$REPLY.vcf" > "$SNPS/headers.txt"
