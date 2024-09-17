@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script runs Anvio population genomics analysis for the desired species
+# This script tests if Acetobacter reads map ambiguously between species
 # Bosco Gracia Alvira, 2024
 
 ### VARIABLES
