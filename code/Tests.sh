@@ -3,10 +3,10 @@ for i in Acetobacter_indonesiensis Acetobacter_malorum Acetobacter_oryzifermenta
 do
     REPLY="$i"
     echo "$REPLY"
-    cd "$REPLY/SNPs_analysis" || exit
+    cd "$REPLY/SNPs_analysis" || continue
+    echo "Working in $REPLY"
     SNPS="."
     rm "$SNPS/coverage.txt"
-
     for j in $(basename -a reads/*_1.fq.gz)
     do
         sample="${j%_1.fq.gz}"
@@ -25,8 +25,8 @@ do
     # This chunk counts the reference and alternative allele frequency in each position and in each sample (mpileup), then calls the SNPs (call) and filters the SNPs (no indels) with a quality above 20 and a depth above 5 
     bcftools mpileup -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -Q 20 -D -d 50 -a DP,AD,QS,SCR -Ou --threads 16 | \
         bcftools call  --ploidy 1 -Ou -cv --threads 16 | \
-        bcftools view -i 'QUAL > 20' -v snps -m2 -M2 -Ou - |\
-        bcftools view -e 'FORMAT/DP[:0] < 3' -Ov - > "$SNPS/temp_$REPLY.vcf"
+        bcftools view -i 'QUAL > 20' -v snps -m2 -M2 -Ov - > "$SNPS/temp_$REPLY.vcf"
+        #bcftools view -e 'FORMAT/DP[:0] < 3' 
 
     # We reformat the headers of the VCF file, that by default include the relative path to the bams
     bcftools view -h "$SNPS/temp_$REPLY.vcf" > "$SNPS/headers.txt"
@@ -40,18 +40,4 @@ do
 done
 
 
-REPLY="Lactiplantibacillus_plantarum"
-SNPS="."
-rm "$SNPS/coverage_80.txt"
-
-for i in $(basename -a reads/*_1.fq.gz)
-do
-    sample="${i%_1.fq.gz}"
-    mean_coverage=$(
-        samtools depth "bams/${sample}_sorted.bam" | \
-        sort -k3,3nr | \
-        awk '{ all[NR] = $3; sum+=$3 } END {if (NR==0) print 0; else { for (i=int(NR*0.1)+1; i<=int(NR*0.9); i++) s+=all[i]; print s/(int(NR*0.9)-int(NR*0.1)) } }')
-        #samtools depth "$BAMS/${sample}_sorted.bam" | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}'
-    # Append the mean coverage to the coverage file
-    echo -e "${sample}\t${mean_coverage}" >> "$SNPS/coverage_80.txt"
-done
+# Problems in Acetobacter_malorum and Acetobacter_persici (the previous script removed the low covered samples, that cannot be found now because they were removed by the previous script)
