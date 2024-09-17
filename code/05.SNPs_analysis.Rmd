@@ -25,16 +25,23 @@ library(gtools)
 
 # Paths to the files that we want to import
 data_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/SNPs_analysis"
-metadata_isolates_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Anvio/Anvio_misc.tsv"
+metadata_isolates_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Anvio_pangen/Anvio_misc.tsv"
 visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
+metadata_isolates_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Anvio_misc.tsv"
 
 # freq is the table that comes from the vcf query that contains allele frequencies for each sample
-freq <- fread(paste0(data_path,"/Lactiplantibacillus_plantarum.freq"),sep="\t",header=T)
+freq <- fread(paste0(data_path,"/Lactiplantibacillus_plantarum.freq"),sep="\t",header=T, colClasses = "character")
 
 # Make the headers pretty :)
 colnames(freq) <- gsub("^#", "", colnames(freq))          # Remove "#"
 colnames(freq) <- gsub("^\\[.*?\\]", "", colnames(freq))  # Remove anything between brackets
 colnames(freq) <- gsub(":AD$", "", colnames(freq))        # Remove ":AD"
+
+```
+
+
+
+```{r Process the frequency table}
 
 # Melt the dataframe to long format
 freq_long <- data.table::melt(freq, id.vars = colnames(freq)[1:4], variable.name = "Sample", value.name = "AF")
@@ -69,53 +76,74 @@ freq_wide <- freq_wide %>%
 # Transform data to arcosin
 freq_asin <- 2*asin(sqrt(freq_wide))
 
-pca.res <- prcomp(freq_asin, retx=TRUE, center = FALSE, scale. =FALSE)
+```
 
-#Visualize eigenvalues (scree plot).
-  #print(fviz_eig(pca.res))
-  
-  #Show the percentage of variances explained by each principal component.
-  #print(fviz_contrib(pca.res, choice = "var", axes = 1:2, top = 10))
-  
-  #if mean.point = TRUE group means are added for each group, specified by coloring_factor
-  print(fviz_pca_ind(pca.res,
-                     repel = TRUE,   # Avoid text overlapping
-                     mean.point = FALSE,
-                     addEllipses=FALSE)) # Default parameters for ellipses
+```{r SFS calculation}
 
+# We calculate the site frequency spectrum for each sample, as well as the median allele frequency
+SFS <- freq_long[,c("Sample","RO")] %>%
+          mutate(RO = ifelse(RO > 0.5, 1 - RO, RO)) %>%
+          na.omit()
 
-
-result <- freq_long %>%
+SFS <- SFS %>%
   group_by(Sample) %>%
-  summarise(
-    SFS = list(table(AF)),
-    Median_RO = median(RO)
-  )
+  mutate(medRO = median(as.numeric(RO))) %>%
+  mutate(allele_count = n()) %>%
+  ungroup()
+
+median_SFS <- SFS %>%
+  group_by(Sample) %>%
+  summarize(median_SFS = median(as.numeric(RO), na.rm = TRUE)) %>%
+  rename(name = Sample)
+
+# Plot the histograms
+ggplot(SFS, aes(x = RO)) +
+  geom_histogram(binwidth = 0.1, boundary = 0, fill = "blue", color = "black") +
+  facet_wrap(~ Sample, scales = "free_y") +
+  labs(title = "Site Frequency Spectrum (Folded)", x = "Allele Frequency", y = "Count") +
+  theme_minimal() +
+  theme(
+    #axis.title.x = element_blank(),
+    #axis.title.y = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank()
+  ) 
+
+ggplot(SFS, aes(x = RO)) +
+  geom_histogram(binwidth = 0.1, boundary = 0, fill = "blue", color = "black") +
+  facet_wrap(~ Sample, scales = "free_y") +
+  geom_vline(aes(xintercept = medRO), color = "red", linetype = "dashed") +
+  labs(title = "Site Frequency Spectrum (Folded)", x = "Allele Frequency (0-0.5)", y = "Count") +
+  theme_minimal() +
+  theme(
+    #axis.title.x = element_blank(),
+    #axis.title.y = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    #axis.ticks.x = element_blank(),
+    #axis.ticks.y = element_blank()
+  ) +
+  facet_wrap(~ Sample, scales = "free_y", labeller = labeller(Sample = function(x) {
+    paste0(x," (",SFS %>% filter(Sample == x) %>% pull(allele_count) %>% unique(),")")
+  }))
+
+```
 
 
-pca <- read.table(paste0(data_path,"/Lactiplantibacillus_plantarum.eigenvec"),sep=" ",header=F)
-colnames(pca)[1] <- "name"
-pca[,2] <- NULL
-
-# How much variance is explained by each PC?
-eigenval <- scan(paste0(data_path,"/Lactiplantibacillus_plantarum.eigenval"))
-variance_explained <- eigenval / sum(eigenval)
-percentage_variance_explained <- variance_explained * 100
 
 
-pca_5 <- read.table(paste0(data_path,"/Lactiplantibacillus_plantarum_5x.eigenvec"),sep=" ",header=F)
-colnames(pca_5)[1] <- "name"
-pca_5[,2] <- NULL
 
-pca_10 <- read.table(paste0(data_path,"/Lactiplantibacillus_plantarum_10x.eigenvec"),sep=" ",header=F)
-colnames(pca_5)[1] <- "name"
-pca_10[,2] <- NULL
+```{r Import metadata}
 
+# Import the metadata of all the isolates and subset those present in the PCA
 metadata_isolates <- fread(metadata_isolates_path, header=T)
+metadata_isolates <- metadata_isolates %>%
+  filter(name %in% rownames(freq_asin))
 metadata_isolates$Source <- "Isolate"
 
-           
-metadata_pools <- as.data.frame(pca$name[grepl("^cF|^hF", pca$name)])
+metadata_pools <- as.data.frame(rownames(freq_asin)[grepl("^cF|^hF", rownames(freq_asin))])
 colnames(metadata_pools) <- "name"
 metadata_pools <- metadata_pools %>%
   mutate(
@@ -127,67 +155,72 @@ metadata_pools <- metadata_pools %>%
     Source = "Pool")
 
 metadata <- rbind(metadata_isolates,metadata_pools)
-
-# Create a colour palette for our temperatures
-temp_palette <- c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue")
+metadata <- merge(metadata, median_SFS, by = "name")
 
 ```
 
 
-```{r PCA of the SNPs}
 
-pca_merged <- merge(pca, metadata, by = "name")
+
+
+```{r Calculate PCA}
+
+# Do the PCA 
+pca.res <- prcomp(freq_asin, retx=TRUE, center = FALSE, scale. =FALSE)
+
+# The variable pca.res$x contains the coordinates of each sample in each PC
+pca_data <- as.data.frame(pca.res$x)
+
+# Add sample information (assuming row names of freq_asin are sample names)
+pca_data$name <- rownames(freq_asin)
+
+# How much variance is explained by each PC? 
+# The variance explained by each PC is the square of the standard deviations divided by the total variance.
+sdev <- pca.res$sdev
+variance_explained <- sdev^2 / sum(sdev^2)
+percentage_variance_explained <- variance_explained * 100
+
+```
+
+
+```{r Plot PCA}
+
+# Merge the eigenvectors and the metadata
+pca_merged <- merge(pca_data, metadata, by = "name")
 pca_pool <- subset(pca_merged, pca_merged$Source=="Pool")
 pca_isolate <- subset(pca_merged, pca_merged$Source=="Isolate")
 
+# Open a graphics device (e.g., PNG)
+png(filename = paste0(reply, "_PCA_plot.png"))
+
+# Plot the PCA
+plot <- ggplot() +
+            geom_point(data = pca_isolate, aes(x = PC1, y = PC2, color = Temperature, shape = Source), size = 1, alpha = 0.4) +
+            geom_point(data = pca_pool, aes(x = PC1, y = PC2, color = Temperature, shape = Source), size = 2) +
+            geom_text(data = pca_pool, aes(x = PC1, y = PC2, label = name, color = Temperature), size = 1.5, hjust = -0.5) +
+            labs(
+              title = "Lactiplantibacillus_plantarum",
+              x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
+              y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
+              color = "Temperature", shape = "Source") +
+            scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
+            theme_minimal()
+
+# Save the plot using ggsave
+ggsave(filename = paste0("PCA_SNPs_",reply,".png"), plot = plot, path = visuals_path, width = 6, height = 4, dpi = 300)
+
 
 ggplot() +
-  geom_point(data = pca_isolate, aes(x = V3, y = V4, color = Temperature, shape = Source), size = 1, alpha = 0.4) +
-  geom_point(data = pca_pool, aes(x = V3, y = V4, color = Temperature, shape = Source), size = 2) +
-  geom_text(data = pca_pool, aes(x = V3, y = V4, label = name, color = Temperature), size = 2, hjust = -0.5) +
-  labs(
-  x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
-  y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
-  color = "Temperature", shape = "Source") +
-  scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
-  theme_minimal()
-ggsave(filename = paste0(visuals_path,"/Lpla_SNPs_PCA.png"), width = 6, height = 4, dpi = 300)
-
-
-
-ggplot(pca_merged, aes(x = V3, y = V4, color = Temperature)) +
-  #geom_point(aes(shape=Source)) +
-  geom_text(aes(label = name), size = 1) +
-  labs(x = "PC1", y = "PC2", color = "Temperature", shape="Source", title = "PCA of L. plantarum") +
-  scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
-  theme_minimal()
-ggsave(filename = paste0(visuals_path,"/Lpla_SNPs_PCA.png"), width = 6, height = 4, dpi = 300)
-
-# This gives a sparser PCA, but the dots are falsely placed!!!
-jitter_position <- position_jitter(width = 0.05, height = 0.05)
-
-ggplot(pca_merged, aes(x = V3, y = V4, color = Temperature)) +
-  geom_point(aes(shape=Source), size = 1, alpha = 0.6, , position = jitter_position) +
-  geom_text(aes(label = name), size = 1, alpha = 0.6, , position = jitter_position, vjust = -1, hjust = 0.5) +
-  labs(x = "PC1", y = "PC2", color = "Temperature", shape="Source", title = "PCA of L. plantarum (jittered)") +
-  scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
-  theme_minimal()
-
-pca_5_merged <- merge(pca_5, metadata, by = "name")
-
-ggplot(pca_5_merged, aes(x = V3, y = V4, color = Temperature)) +
-  geom_point(aes(shape=Source)) +
-  labs(x = "PC1", y = "PC2", color = "Temperature", shape="Source", title = "PCA of L. plantarum 5x") +
-  scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
-  theme_minimal()
-
-pca_10_merged <- merge(pca_5, metadata, by = "name")
-
-ggplot(pca_10_merged, aes(x = V3, y = V4, color = Temperature)) +
-  geom_point(aes(shape=Source)) +
-  labs(x = "PC1", y = "PC2", color = "Temperature", shape="Source", title = "PCA of L. plantarum 10x") +
-  scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
-  theme_minimal()
+            geom_point(data = pca_isolate, aes(x = PC1, y = PC2, color = median_SFS, shape = Source), size = 1, alpha = 0.4) +
+            geom_point(data = pca_pool, aes(x = PC1, y = PC2, color = median_SFS, shape = Source), size = 2) +
+            geom_text(data = pca_pool, aes(x = PC1, y = PC2, label = name, color = median_SFS), size = 1.5, hjust = -0.5) +
+            labs(
+              title = "Lactiplantibacillus_plantarum",
+              x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
+              y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
+              color = "median_SFS", shape = "Source") +
+            scale_color_gradient(low = "purple", high = "yellow") +
+            theme_minimal()
 
 ```
 
