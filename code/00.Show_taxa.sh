@@ -16,7 +16,7 @@ IFS="
 # Create or update the taxonomy file
 cat "$ASSEMBLY"/Pool_503/07.GTDB-Tk/gtdbtk.bac120.summary.tsv > "$WORKDIR"/taxonomy.tsv
 tail -n +2 "$ASSEMBLY"/Pool_591/07.GTDB-Tk/gtdbtk.bac120.summary.tsv >> "$WORKDIR"/taxonomy.tsv
-tail -n +2 "$ASSEMBLY"/Pool_643/07.GTDB-Tk/gtdbtk.bac120.summary.tsv >> "$WORKDIR"/taxonomy.tsv
+tail -n +2 "$ASSEMBLY"/Pool_64?/07.GTDB-Tk/gtdbtk.bac120.summary.tsv >> "$WORKDIR"/taxonomy.tsv
 
 # Show the available scripts
 echo
