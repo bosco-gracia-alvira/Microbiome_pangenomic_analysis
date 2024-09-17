@@ -82,7 +82,7 @@ then
 fi
 
 # Add more pools to the loop if needed
-for i in 503 591 643
+for i in 503 591 643 644
 do
     cp "$ASSEMBLY"/Pool_${i}/07.GTDB-Tk/Genomes/*.fasta "$GENOMES"
 done
