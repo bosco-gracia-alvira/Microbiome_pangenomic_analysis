@@ -8,10 +8,9 @@
 # Ask the user which species to analyse
 
 # Set the paths
-WORKDIR="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data"
-LOCAL="/Users/bgracia/PhD_local/Microbiome_pangenomic_analysis/data/temp"
-LOCATION_COLD="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Ancestral_microbiome/data/poolseq_reads_cold"
-LOCATION_HOT="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Ancestral_microbiome/data/poolseq_reads_hot"
+WORKDIR="/Volumes/Data/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data"
+LOCAL="/Volumes/Temp/competitive_mapping"
+READS="/Volumes/Data/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Ancestral_microbiome/data/Competitive_mapping_microbiome/mapped"
 
 # First argument of the script is the species to analyse
 REPLY=$1
@@ -42,6 +41,7 @@ SAMPLES=$(awk -v s="$SPECIES" -F "\t" '$8 ~ s {print $1}' "$WORKDIR"/Genome_meta
 # Evaluate the number of genomes available for the species
 species_count=$(cut -f2 "$WORKDIR"/taxonomy.tsv | awk -F 's__' '{print $2}' | grep " "| sed 's/ /_/' | sort | uniq -c | sort -r)
 count=$(echo "$species_count" | grep -w "$REPLY" | awk '{print $1}')
+echo "$count genomes available for taxon $SPECIES"
 
 # If there is only one genome available, we will use it as reference
 if [ "$count" -eq 1 ]; then
@@ -53,7 +53,12 @@ else
   REFERENCE="$WORKDIR/${REPLY}/SuperPang/assembly.fasta"
 fi
 
-SNPS="$LOCAL/${REPLY}/SNPs_analysis"
+if [[ ! -d "$LOCAL" ]]
+then  
+    mkdir -p "$LOCAL"
+fi
+
+SNPS="$LOCAL/${REPLY}/SNPs_competitive"
 RAW_READS="$SNPS/reads"
 LOGS="$SNPS/logs"
 BAMS="$SNPS/bams"
@@ -66,6 +71,13 @@ if [[ ! -f "$REFERENCE" ]]
 then
         echo -e "The species $REPLY is not availabe :("
         echo -e "Maybe you have forgotten to run 03.Graph_pangenome.sh"
+        exit
+fi
+
+if [[ ! -d "$READS" ]]
+then
+        echo -e "The folder with bams does not seem to exist"
+        echo -e "Maybe you have forgotten to run the competitive_mapping script"
         exit
 fi
 
@@ -97,43 +109,42 @@ anvi-script-reformat-fasta \
 samtools faidx "$SNPS"/ref.fa
 conda deactivate
 
-# Link the poolseq reads sets to the working directory
-for i in $(basename "$LOCATION_HOT"/F*)
+# Extract the reads from the bam files
+# From the hot pools
+for i in "$READS"/h*
 do
-  ln -s "$LOCATION_HOT"/F*/Pooled_${i}_Clean_noCont_1.fq.gz "$RAW_READS"/h${i}_1.fq.gz
-  ln -s "$LOCATION_HOT"/F*/Pooled_${i}_Clean_noCont_2.fq.gz "$RAW_READS"/h${i}_2.fq.gz
+    sample=$(basename "${i}")
+    echo "Extracting reads from ${sample}"
+    samtools fastq \
+        -F 4 \
+        -1 "$RAW_READS"/"${sample}"_1.fq.gz \
+        -2 "$RAW_READS"/"${sample}"_2.fq.gz \
+        "${READS}"/"${sample}"/*"${REPLY}"*.bam
 done
 
-for i in $(basename "$LOCATION_COLD"/F*)
+# From the cold pools
+for i in "$READS"/c*
 do
-  ln -s "$LOCATION_COLD"/F*/Pooled_${i}_Clean_noCont_1.fq.gz "$RAW_READS"/c${i}_1.fq.gz
-  ln -s "$LOCATION_COLD"/F*/Pooled_${i}_Clean_noCont_2.fq.gz "$RAW_READS"/c${i}_2.fq.gz
+    sample=$(basename "${i}")
+    echo "Extracting reads from ${sample}"
+    samtools fastq \
+        -F 4 \
+        -1 "$RAW_READS"/"${sample}"_1.fq.gz \
+        -2 "$RAW_READS"/"${sample}"_2.fq.gz \
+        "${READS}"/"${sample}"/*"${REPLY}"*.bam
 done
 
-# Link the isolates reads to the working
-
-# Create a file linking the samples of interest and the location of their reads
-
-# This script creates a file that links the genomes to their reads path (absolute_path_reads.txt)
-Rscript "$WORKDIR"/../code/05.Reformat_SNP.R
-
-head -n 1 "$WORKDIR"/absolute_path_reads.txt > "$SNPS/genomes_reads.txt"
-
+# From the isolates
 for i in $SAMPLES
 do
-        grep -w "$i" "$WORKDIR"/absolute_path_reads.txt >> "$SNPS/genomes_reads.txt"
+    sample="i${i}"
+    echo "Extracting reads from ${sample}"
+    samtools fastq \
+            -F 4 \
+            -1 "$RAW_READS"/"${i}"_1.fq.gz \
+            -2 "$RAW_READS"/"${i}"_2.fq.gz \
+            "${READS}"/"${sample}"/*"${REPLY}"*.bam
 done
-
-# Iterate over the files to link the reads to the working directory
-while IFS=$'\t' read -r sample r1 r2
-do
-        # Skip the header line
-        if [[ "$sample" != "sample" ]]
-        then
-            ln -s "$r1" "$RAW_READS/${sample}_1.fq.gz"
-            ln -s "$r2" "$RAW_READS/${sample}_2.fq.gz"
-        fi
-done < "$SNPS/genomes_reads.txt"
 
 # Map the reads to the reference pangenome
 
@@ -194,16 +205,16 @@ cd "$SNPS" || exit
 awk '$2 >= 10 {print "./bams/"$1"_sorted.bam"}' "$SNPS/coverage.txt" | grep -v "sample" > "$SNPS/coverage_10.txt"
 awk '$2 >= 5 {print "./bams/"$1"_sorted.bam"}' "$SNPS/coverage.txt" | grep -v "sample" > "$SNPS/coverage_5.txt"
 
-# Remove the bams whose coverage is below 10
-for i in "$BAMS"/*_sorted.bam; do
-    mean_coverage=$(samtools depth "$i" | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}')
-    if (( $(echo "$mean_coverage >= 5" | bc -l) )); then
-        echo "Keeping $i with mean coverage $mean_coverage"
-    else
-        echo "Discarding $i with mean coverage $mean_coverage"
-        rm "$i"
-    fi
-done
+# # Remove the bams whose coverage is below 10
+# for i in "$BAMS"/*_sorted.bam; do
+#     mean_coverage=$(samtools depth "$i" | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}')
+#     if (( $(echo "$mean_coverage >= 5" | bc -l) )); then
+#         echo "Keeping $i with mean coverage $mean_coverage"
+#     else
+#         echo "Discarding $i with mean coverage $mean_coverage"
+#         rm "$i"
+#     fi
+# done
 
 # This chunk counts the reference and alternative allele frequency in each position and in each sample (mpileup), then calls the SNPs (call) and filters the SNPs (no indels) with a quality above 20 and a depth above 5 
 bcftools mpileup -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -Q 20 -D -d 50 -a DP,AD,QS,SCR -Ou --threads 16 | \
