@@ -12,7 +12,7 @@ WORKDIR="/Volumes/Data/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_
 LOCAL="/Volumes/Temp/competitive_mapping"
 READS="/Volumes/Data/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Ancestral_microbiome/data/Competitive_mapping_microbiome/mapped"
 BBMAP="/Volumes/Data/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Isolates_assembly/Scripts/bbmap"
-BBMAP_LOCAL="/Volumes/Temp/competitive_mapping/bbmap"
+BBMAP_LOCAL="$LOCAL/bbmap"
 # First argument of the script is the species to analyse
 REPLY=$1
 
@@ -153,7 +153,7 @@ done
 # Map the reads to the reference pangenome
 
 # Create an index for the reference combined genome
-bbmap.sh ref="$SNPS"/ref.fa path="$SNPS" -Xmx24g
+"$BBMAP_LOCAL"/bbmap.sh ref="$SNPS"/ref.fa path="$SNPS" -Xmx24g
 
 echo -e "sample\tcoverage" > "$SNPS"/coverage.txt
 
@@ -166,7 +166,7 @@ do
 
   echo "Mapping ${sample}"
   # Map paired end reads using bowtie with stringent settings and output the result to a sam file
-  bbmap.sh \
+  "$BBMAP_LOCAL"/bbmap.sh \
     ref="$SNPS"/ref.fa \
     path="$SNPS" \
     in="$RAW_READS/${r1}" \
