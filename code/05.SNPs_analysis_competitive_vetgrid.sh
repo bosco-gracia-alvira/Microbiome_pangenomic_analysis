@@ -11,7 +11,8 @@
 WORKDIR="/Volumes/Data/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data"
 LOCAL="/Volumes/Temp/competitive_mapping"
 READS="/Volumes/Data/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Ancestral_microbiome/data/Competitive_mapping_microbiome/mapped"
-
+BBMAP="/Volumes/Data/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Isolates_assembly/Scripts/bbmap"
+BBMAP_LOCAL="/Volumes/Temp/competitive_mapping/bbmap"
 # First argument of the script is the species to analyse
 REPLY=$1
 
@@ -57,6 +58,9 @@ if [[ ! -d "$LOCAL" ]]
 then  
     mkdir -p "$LOCAL"
 fi
+
+# Copy BBMAP to the temporary local directory
+cp -r "$BBMAP" "$LOCAL"
 
 SNPS="$LOCAL/${REPLY}/SNPs_competitive"
 RAW_READS="$SNPS/reads"
