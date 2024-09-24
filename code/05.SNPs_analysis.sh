@@ -194,15 +194,15 @@ awk '$2 >= 10 {print "./bams/"$1"_sorted.bam"}' "$SNPS/coverage.txt" | grep -v "
 awk '$2 >= 5 {print "./bams/"$1"_sorted.bam"}' "$SNPS/coverage.txt" | grep -v "sample" > "$SNPS/coverage_5.txt"
 
 # Remove the bams whose coverage is below 10
-for i in "$BAMS"/*_sorted.bam; do
-    mean_coverage=$(samtools depth "$i" | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}')
-    if (( $(echo "$mean_coverage >= 5" | bc -l) )); then
-        echo "Keeping $i with mean coverage $mean_coverage"
-    else
-        echo "Discarding $i with mean coverage $mean_coverage"
-        rm "$i"
-    fi
-done
+# for i in "$BAMS"/*_sorted.bam; do
+#     mean_coverage=$(samtools depth "$i" | awk '{sum+=$3} END {if (NR>0) print sum/NR; else print 0}')
+#     if (( $(echo "$mean_coverage >= 5" | bc -l) )); then
+#         echo "Keeping $i with mean coverage $mean_coverage"
+#     else
+#         echo "Discarding $i with mean coverage $mean_coverage"
+#         rm "$i"
+#     fi
+# done
 
 # This chunk counts the reference and alternative allele frequency in each position and in each sample (mpileup), then calls the SNPs (call) and filters the SNPs (no indels) with a quality above 20 and a depth above 5 
 bcftools mpileup -f "$SNPS"/ref.fa -b "$SNPS/coverage_5.txt" -Q 20 -D -d 50 -a DP,AD,QS,SCR -Ou --threads 16 | \
