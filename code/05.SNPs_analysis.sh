@@ -219,8 +219,8 @@ bcftools reheader -h "$SNPS/headers.txt" -o "$SNPS/$REPLY.vcf" "$SNPS/temp_$REPL
 bcftools query -H -f '%CHROM\t%POS\t%REF\t%ALT[\t%AD]\n' "$SNPS/$REPLY.vcf" > "$SNPS/$REPLY.freq"
 
 # We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
-plink2 --vcf "$SNPS/${REPLY}.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}"
-plink2 --bfile "$SNPS/${REPLY}" --double-id --allow-extra-chr --pca --out "$SNPS/${REPLY}"
+# plink2 --vcf "$SNPS/${REPLY}.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}"
+# plink2 --bfile "$SNPS/${REPLY}" --double-id --allow-extra-chr --pca --out "$SNPS/${REPLY}"
 
 rm "$SNPS/temp_$REPLY.vcf"
 
@@ -229,4 +229,4 @@ rsync -av --remove-source-files "$SNPS" "$WORKDIR/${REPLY}/"
 rm -r "${LOCAL:?}/${REPLY:?}"
 
 # This script plots the PCA of the samples based on the SNPs frequency
-Rscript "$WORKDIR"/../code/05.Plot_PCA.R "$REPLY"
+Rscript "$WORKDIR"/../code/05.SNPs_plotting.Rmd "$REPLY"
