@@ -81,9 +81,11 @@ freq_wide <- freq_long %>%
   column_to_rownames(var = "Sample")  # Set Sample as row names
 
 # Remove the columns (SNPs) that are NaN in at least 1 sample
+rows_freq <- row.names(freq_wide)
 freq_wide <- as.data.table(freq_wide)
 freq_wide <- freq_wide[, lapply(.SD, function(x) if (any(is.nan(x))) NULL else x), .SDcols = names(freq_wide)]
 freq_wide <- as.data.frame(freq_wide)
+row.names(freq_wide) <- rows_freq
 
 # Transform data to arcosin
 freq_asin <- 2*asin(sqrt(freq_wide))
@@ -97,13 +99,11 @@ SFS <- freq_long[,c("Sample","RO")] %>%
           mutate(RO = ifelse(RO > 0.5, 1 - RO, RO)) %>%
           na.omit()
 
-# Remove "_contigs$" from the end of some genomes
-median_SFS$name <- gsub("_contigs$", "", median_SFS$name)
-
 SFS <- SFS %>%
   group_by(Sample) %>%
   mutate(medRO = median(as.numeric(RO))) %>%
   mutate(allele_count = n()) %>%
+  mutate(Title = gsub("_contigs$", "", Sample)) %>%
   ungroup()
 
 median_SFS <- SFS %>%
@@ -111,30 +111,27 @@ median_SFS <- SFS %>%
   summarize(median_SFS = median(as.numeric(RO), na.rm = TRUE)) %>%
   rename(name = Sample)
 
-# Remove "_contigs$" from the end of some genomes
-median_SFS$name <- gsub("_contigs$", "", median_SFS$name)
-
 # Open a graphics device (e.g., PNG)
 png(filename = paste0("SFS_",reply,".png"))
 
 # Plot the SFS for each isolate
 SFS_plot <- ggplot(SFS, aes(x = RO)) +
-            geom_histogram(binwidth = 0.1, boundary = 0, fill = "blue", color = "black") +
-            facet_wrap(~ Sample, scales = "free_y") +
-            geom_vline(aes(xintercept = medRO), color = "red", linetype = "dashed") +
-            labs(title = "Site Frequency Spectrum (Folded)", x = "Allele Frequency (0-0.5)", y = "Count") +
-            theme_minimal() +
-            theme(
-              #axis.title.x = element_blank(),
-              #axis.title.y = element_blank(),
-              axis.text.x = element_blank(),
-              axis.text.y = element_blank(),
-              #axis.ticks.x = element_blank(),
-              #axis.ticks.y = element_blank()
-            ) +
-            facet_wrap(~ Sample, scales = "free_y", labeller = labeller(Sample = function(x) {
-              paste0(x," (",SFS %>% filter(Sample == x) %>% pull(allele_count) %>% unique(),")")
-            }))
+                geom_histogram(binwidth = 0.1, boundary = 0, fill = "blue", color = "black") +
+                facet_wrap(~ Title, scales = "free_y") +
+                geom_vline(aes(xintercept = medRO), color = "red", linetype = "dashed") +
+                labs(title = "Site Frequency Spectrum (Folded)", x = "Allele Frequency (0-0.5)", y = "Count") +
+                theme_minimal() +
+                theme(
+                  #axis.title.x = element_blank(),
+                  #axis.title.y = element_blank(),
+                  axis.text.x = element_blank(),
+                  axis.text.y = element_blank(),
+                  #axis.ticks.x = element_blank(),
+                  #axis.ticks.y = element_blank()
+                ) +
+                facet_wrap(~ Title, scales = "free_y", labeller = labeller(Title = function(x) {
+                  paste0(x," (",SFS %>% filter(Title == x) %>% pull(allele_count) %>% unique(),")")
+                }))
 
 
 # Save the plot using ggsave
@@ -208,6 +205,7 @@ png(filename = paste0("PCA_temp_",reply,".png"))
 # Plot the PCA colouring the samples by isolation temperature regime
 PCA_temp <- ggplot() +
                 geom_point(data = pca_isolate, aes(x = PC1, y = PC2, color = Temperature, shape = Source), size = 1, alpha = 0.4) +
+                geom_text(data = pca_isolate, aes(x = PC1, y = PC2, label = name, color = Temperature), size = 1.5, hjust = -0.5) +
                 geom_point(data = pca_pool, aes(x = PC1, y = PC2, color = Temperature, shape = Source), size = 2) +
                 geom_text(data = pca_pool, aes(x = PC1, y = PC2, label = name, color = Temperature), size = 1.5, hjust = -0.5) +
                 labs(
@@ -221,6 +219,8 @@ PCA_temp <- ggplot() +
 # Save the plot using ggsave
 ggsave(filename = paste0("PCA_temp_",reply,".png"), plot = PCA_temp, path = visuals_path, width = 6, height = 4, dpi = 300)
 
+# Close the graphics device
+dev.off()
 
 # Open a graphics device (e.g., PNG)
 png(filename = paste0("PCA_SFS_",reply,".png"))
@@ -228,6 +228,7 @@ png(filename = paste0("PCA_SFS_",reply,".png"))
 # Plot the PCA colouring the samples by median AF
 PCA_SFS <- ggplot() +
               geom_point(data = pca_isolate, aes(x = PC1, y = PC2, color = median_SFS, shape = Source), size = 1, alpha = 0.4) +
+              geom_text(data = pca_isolate, aes(x = PC1, y = PC2, label = name, color = median_SFS), size = 1.5, hjust = -0.5) +
               geom_point(data = pca_pool, aes(x = PC1, y = PC2, color = median_SFS, shape = Source), size = 2) +
               geom_text(data = pca_pool, aes(x = PC1, y = PC2, label = name, color = median_SFS), size = 1.5, hjust = -0.5) +
               labs(
@@ -237,8 +238,12 @@ PCA_SFS <- ggplot() +
                 color = "median_SFS", shape = "Source") +
               scale_color_gradient(low = "purple", high = "yellow") +
               theme_minimal()
+
 # Save the plot using ggsave
 ggsave(filename = paste0("PCA_SFS_",reply,".png"), plot = PCA_SFS, path = visuals_path, width = 6, height = 4, dpi = 300)
+
+# Close the graphics device
+dev.off()
 
 ```
 
