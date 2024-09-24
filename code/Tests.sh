@@ -59,3 +59,22 @@ do
         echo "Finished graph pangenome for taxon $i"
     fi
 done
+
+REPLY=Leuconostoc_pseudomesenteroides
+for i in Leuconostoc_pseudomesenteroides Levilactobacillus_brevis  
+do
+        echo "Whole pipeline for taxon $i"
+        REPLY="$i"
+        rm -r data/"$REPLY"/Anvio_pangen
+        ./code/01.Gen_tables.sh "$REPLY"
+        ./code/02.Anvio_pangen_wf.sh "$REPLY"
+        echo "Finished pangenomic analysis for taxon $i"
+        ./code/03.Graph_pangenome.sh "$REPLY"
+        echo "Finished graph pangenome for taxon $i"
+done
+
+anvi-analyze-synteny -g MYPAN-GENOMES.db \
+                     -p MYPAN-PAN.db \
+                     --ngram-window-range 2:3 \
+                     -G X79_1_contigs,X81_1_contigs \
+                     -o ngrams
