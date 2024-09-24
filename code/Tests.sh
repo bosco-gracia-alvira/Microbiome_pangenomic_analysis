@@ -40,4 +40,22 @@ do
 done
 
 
-# Problems in Acetobacter_malorum and Acetobacter_persici (the previous script removed the low covered samples, that cannot be found now because they were removed by the previous script)
+
+for i in Lactiplantibacillus_plantarum Acetobacter_indonesiensis Acetobacter_oryzifermentans Lacticaseibacillus_paracasei Leuconostoc_pseudomesenteroides Levilactobacillus_brevis  
+do
+    if [[ $i == "Lactiplantibacillus_plantarum" ]]
+    then 
+        echo "Making $i graph pangenome"
+        REPLY="$i"
+        ./code/03.Graph_pangenome.sh "$REPLY"
+    else
+        echo "Whole pipeline for taxon $i"
+        REPLY="$i"
+        rm -r data/"$REPLY"/Anvio_pangen
+        ./code/01.Gen_tables.sh "$REPLY"
+        ./code/02.Anvio_pangen_wf.sh "$REPLY"
+        echo "Finished pangenomic analysis for taxon $i"
+        ./code/03.Graph_pangenome.sh "$REPLY"
+        echo "Finished graph pangenome for taxon $i"
+    fi
+done
