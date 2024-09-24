@@ -19,18 +19,33 @@ library(gtools)
 
 ```
 
+```{r Choose the taxon of interest}
+
+# Get the command line arguments
+args <- commandArgs(trailingOnly = TRUE)
+
+# The first argument will be the value of $REPLY
+reply <- args[1]
+
+
+# Print the value of reply (for debugging purposes)
+print(paste("The value of REPLY is:", reply))
+
+setwd(paste0("/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/",reply,"/SNPs_analysis"))
+
+```
 
 
 ```{r Loading the data}
 
 # Paths to the files that we want to import
-data_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/SNPs_analysis"
-metadata_isolates_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Anvio_pangen/Anvio_misc.tsv"
+data_path <- paste0("/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/",reply,"/SNPs_analysis")
+metadata_isolates_path <- paste0("/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/",reply,"/Anvio_pangen/Anvio_misc.tsv")
 visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
 metadata_isolates_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Anvio_misc.tsv"
 
 # freq is the table that comes from the vcf query that contains allele frequencies for each sample
-freq <- fread(paste0(data_path,"/Lactiplantibacillus_plantarum.freq"),sep="\t",header=T, colClasses = "character")
+freq <- fread(paste0(data_path,"/",reply,".freq"),sep="\t",header=T, colClasses = "character")
 
 # Make the headers pretty :)
 colnames(freq) <- gsub("^#", "", colnames(freq))          # Remove "#"
@@ -38,7 +53,6 @@ colnames(freq) <- gsub("^\\[.*?\\]", "", colnames(freq))  # Remove anything betw
 colnames(freq) <- gsub(":AD$", "", colnames(freq))        # Remove ":AD"
 
 ```
-
 
 
 ```{r Process the frequency table}
@@ -65,9 +79,6 @@ freq_wide <- freq_long %>%
   select(Sample, CHROM_POS, RO) %>%  # Select relevant columns
   pivot_wider(names_from = CHROM_POS, values_from = RO) %>%  # Pivot to wide format
   column_to_rownames(var = "Sample")  # Set Sample as row names
-
-# Remove problematic samples hF130
-freq_wide <- freq_wide[rownames(freq_wide) != "hF130", ]
 
 # Remove the columns (SNPs) that are missing in at least 1 sample
 freq_wide <- freq_wide %>%
@@ -96,43 +107,36 @@ median_SFS <- SFS %>%
   summarize(median_SFS = median(as.numeric(RO), na.rm = TRUE)) %>%
   rename(name = Sample)
 
-# Plot the histograms
-ggplot(SFS, aes(x = RO)) +
-  geom_histogram(binwidth = 0.1, boundary = 0, fill = "blue", color = "black") +
-  facet_wrap(~ Sample, scales = "free_y") +
-  labs(title = "Site Frequency Spectrum (Folded)", x = "Allele Frequency", y = "Count") +
-  theme_minimal() +
-  theme(
-    #axis.title.x = element_blank(),
-    #axis.title.y = element_blank(),
-    axis.text.x = element_blank(),
-    axis.text.y = element_blank(),
-    axis.ticks.x = element_blank(),
-    axis.ticks.y = element_blank()
-  ) 
+# Open a graphics device (e.g., PNG)
+png(filename = paste0("SFS_",reply,".png"))
 
-ggplot(SFS, aes(x = RO)) +
-  geom_histogram(binwidth = 0.1, boundary = 0, fill = "blue", color = "black") +
-  facet_wrap(~ Sample, scales = "free_y") +
-  geom_vline(aes(xintercept = medRO), color = "red", linetype = "dashed") +
-  labs(title = "Site Frequency Spectrum (Folded)", x = "Allele Frequency (0-0.5)", y = "Count") +
-  theme_minimal() +
-  theme(
-    #axis.title.x = element_blank(),
-    #axis.title.y = element_blank(),
-    axis.text.x = element_blank(),
-    axis.text.y = element_blank(),
-    #axis.ticks.x = element_blank(),
-    #axis.ticks.y = element_blank()
-  ) +
-  facet_wrap(~ Sample, scales = "free_y", labeller = labeller(Sample = function(x) {
-    paste0(x," (",SFS %>% filter(Sample == x) %>% pull(allele_count) %>% unique(),")")
-  }))
+# Plot the SFS for each isolate
+SFS_plot <- ggplot(SFS, aes(x = RO)) +
+            geom_histogram(binwidth = 0.1, boundary = 0, fill = "blue", color = "black") +
+            facet_wrap(~ Sample, scales = "free_y") +
+            geom_vline(aes(xintercept = medRO), color = "red", linetype = "dashed") +
+            labs(title = "Site Frequency Spectrum (Folded)", x = "Allele Frequency (0-0.5)", y = "Count") +
+            theme_minimal() +
+            theme(
+              #axis.title.x = element_blank(),
+              #axis.title.y = element_blank(),
+              axis.text.x = element_blank(),
+              axis.text.y = element_blank(),
+              #axis.ticks.x = element_blank(),
+              #axis.ticks.y = element_blank()
+            ) +
+            facet_wrap(~ Sample, scales = "free_y", labeller = labeller(Sample = function(x) {
+              paste0(x," (",SFS %>% filter(Sample == x) %>% pull(allele_count) %>% unique(),")")
+            }))
+
+
+# Save the plot using ggsave
+ggsave(filename = paste0("SFS_",reply,".png"), plot = SFS_plot, path = visuals_path, width = 6, height = 4, dpi = 300)
+
+# Close the graphics device
+dev.off()
 
 ```
-
-
-
 
 
 ```{r Import metadata}
@@ -160,9 +164,6 @@ metadata <- merge(metadata, median_SFS, by = "name")
 ```
 
 
-
-
-
 ```{r Calculate PCA}
 
 # Do the PCA 
@@ -183,7 +184,7 @@ percentage_variance_explained <- variance_explained * 100
 ```
 
 
-```{r Plot PCA}
+```{r Plot PCAs}
 
 # Merge the eigenvectors and the metadata
 pca_merged <- merge(pca_data, metadata, by = "name")
@@ -191,61 +192,42 @@ pca_pool <- subset(pca_merged, pca_merged$Source=="Pool")
 pca_isolate <- subset(pca_merged, pca_merged$Source=="Isolate")
 
 # Open a graphics device (e.g., PNG)
-png(filename = paste0(reply, "_PCA_plot.png"))
+png(filename = paste0("PCA_temp_",reply,".png"))
 
-# Plot the PCA
-plot <- ggplot() +
-            geom_point(data = pca_isolate, aes(x = PC1, y = PC2, color = Temperature, shape = Source), size = 1, alpha = 0.4) +
-            geom_point(data = pca_pool, aes(x = PC1, y = PC2, color = Temperature, shape = Source), size = 2) +
-            geom_text(data = pca_pool, aes(x = PC1, y = PC2, label = name, color = Temperature), size = 1.5, hjust = -0.5) +
-            labs(
-              title = "Lactiplantibacillus_plantarum",
-              x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
-              y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
-              color = "Temperature", shape = "Source") +
-            scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
-            theme_minimal()
+# Plot the PCA colouring the samples by isolation temperature regime
+PCA_temp <- ggplot() +
+                geom_point(data = pca_isolate, aes(x = PC1, y = PC2, color = Temperature, shape = Source), size = 1, alpha = 0.4) +
+                geom_point(data = pca_pool, aes(x = PC1, y = PC2, color = Temperature, shape = Source), size = 2) +
+                geom_text(data = pca_pool, aes(x = PC1, y = PC2, label = name, color = Temperature), size = 1.5, hjust = -0.5) +
+                labs(
+                  title = "Lactiplantibacillus_plantarum",
+                  x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
+                  y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
+                  color = "Temperature", shape = "Source") +
+                scale_colour_manual(values = c("HOT" = "red", "BASE" = "grey", "COLD" = "lightblue", "COLD-CONSTANT" = "blue")) +
+                theme_minimal()
 
 # Save the plot using ggsave
-ggsave(filename = paste0("PCA_SNPs_",reply,".png"), plot = plot, path = visuals_path, width = 6, height = 4, dpi = 300)
+ggsave(filename = paste0("PCA_temp_",reply,".png"), plot = PCA_temp, path = visuals_path, width = 6, height = 4, dpi = 300)
 
 
-ggplot() +
-            geom_point(data = pca_isolate, aes(x = PC1, y = PC2, color = median_SFS, shape = Source), size = 1, alpha = 0.4) +
-            geom_point(data = pca_pool, aes(x = PC1, y = PC2, color = median_SFS, shape = Source), size = 2) +
-            geom_text(data = pca_pool, aes(x = PC1, y = PC2, label = name, color = median_SFS), size = 1.5, hjust = -0.5) +
-            labs(
-              title = "Lactiplantibacillus_plantarum",
-              x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
-              y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
-              color = "median_SFS", shape = "Source") +
-            scale_color_gradient(low = "purple", high = "yellow") +
-            theme_minimal()
+# Open a graphics device (e.g., PNG)
+png(filename = paste0("PCA_SFS_",reply,".png"))
 
-```
-
-
-
-```{r Nucleotide diversity}
-
-
-
-
-
-
-```
-
-
-
-
-```{r Tajima's D}
-
-
-
-
-
-
-
+# Plot the PCA colouring the samples by median AF
+PCA_SFS <- ggplot() +
+              geom_point(data = pca_isolate, aes(x = PC1, y = PC2, color = median_SFS, shape = Source), size = 1, alpha = 0.4) +
+              geom_point(data = pca_pool, aes(x = PC1, y = PC2, color = median_SFS, shape = Source), size = 2) +
+              geom_text(data = pca_pool, aes(x = PC1, y = PC2, label = name, color = median_SFS), size = 1.5, hjust = -0.5) +
+              labs(
+                title = "Lactiplantibacillus_plantarum",
+                x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
+                y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
+                color = "median_SFS", shape = "Source") +
+              scale_color_gradient(low = "purple", high = "yellow") +
+              theme_minimal()
+# Save the plot using ggsave
+ggsave(filename = paste0("PCA_SFS_",reply,".png"), plot = PCA_SFS, path = visuals_path, width = 6, height = 4, dpi = 300)
 
 ```
 
