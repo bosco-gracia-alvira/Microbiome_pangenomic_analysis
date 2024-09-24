@@ -26,7 +26,7 @@ args <- commandArgs(trailingOnly = TRUE)
 
 # The first argument will be the value of $REPLY
 reply <- args[1]
-
+reply <- "Lactiplantibacillus_plantarum"
 
 # Print the value of reply (for debugging purposes)
 print(paste("The value of REPLY is:", reply))
@@ -80,9 +80,10 @@ freq_wide <- freq_long %>%
   pivot_wider(names_from = CHROM_POS, values_from = RO) %>%  # Pivot to wide format
   column_to_rownames(var = "Sample")  # Set Sample as row names
 
-# Remove the columns (SNPs) that are missing in at least 1 sample
-freq_wide <- freq_wide %>%
-  select_if(~ !any(is.nan(.)))
+# Remove the columns (SNPs) that are NaN in at least 1 sample
+freq_wide <- as.data.table(freq_wide)
+freq_wide <- freq_wide[, lapply(.SD, function(x) if (any(is.nan(x))) NULL else x), .SDcols = names(freq_wide)]
+freq_wide <- as.data.frame(freq_wide)
 
 # Transform data to arcosin
 freq_asin <- 2*asin(sqrt(freq_wide))
@@ -96,6 +97,9 @@ SFS <- freq_long[,c("Sample","RO")] %>%
           mutate(RO = ifelse(RO > 0.5, 1 - RO, RO)) %>%
           na.omit()
 
+# Remove "_contigs$" from the end of some genomes
+median_SFS$name <- gsub("_contigs$", "", median_SFS$name)
+
 SFS <- SFS %>%
   group_by(Sample) %>%
   mutate(medRO = median(as.numeric(RO))) %>%
@@ -106,6 +110,9 @@ median_SFS <- SFS %>%
   group_by(Sample) %>%
   summarize(median_SFS = median(as.numeric(RO), na.rm = TRUE)) %>%
   rename(name = Sample)
+
+# Remove "_contigs$" from the end of some genomes
+median_SFS$name <- gsub("_contigs$", "", median_SFS$name)
 
 # Open a graphics device (e.g., PNG)
 png(filename = paste0("SFS_",reply,".png"))
@@ -188,6 +195,10 @@ percentage_variance_explained <- variance_explained * 100
 
 # Merge the eigenvectors and the metadata
 pca_merged <- merge(pca_data, metadata, by = "name")
+
+# Remove "_contigs$" from the end of some genomes
+pca_merged$name <- gsub("_contigs$", "", pca_merged$name)
+
 pca_pool <- subset(pca_merged, pca_merged$Source=="Pool")
 pca_isolate <- subset(pca_merged, pca_merged$Source=="Isolate")
 
