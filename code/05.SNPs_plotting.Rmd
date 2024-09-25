@@ -108,8 +108,21 @@ SFS <- SFS %>%
 
 median_SFS <- SFS %>%
   group_by(Sample) %>%
-  summarize(median_SFS = median(as.numeric(RO), na.rm = TRUE)) %>%
+  summarize(
+    median_SFS = median(as.numeric(RO), na.rm = TRUE),
+    Total = sum(as.numeric(RO)),
+    No0 = sum(as.numeric(RO) != 0, na.rm = TRUE),
+    percent = No0/Total
+  ) %>%
   rename(name = Sample)
+
+ggplot(median_SFS, aes(x = name, y = percent)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Number of Non-Zero Values per Sample",
+       x = "Sample Name",
+       y = "Number of variant sites") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # Open a graphics device (e.g., PNG)
 png(filename = paste0("SFS_",reply,".png"))
@@ -135,7 +148,7 @@ SFS_plot <- ggplot(SFS, aes(x = RO)) +
 
 
 # Save the plot using ggsave
-ggsave(filename = paste0("SFS_",reply,".png"), plot = SFS_plot, path = visuals_path, width = 6, height = 4, dpi = 300)
+ggsave(filename = paste0("SFS_",reply,".png"), plot = SFS_plot, path = visuals_path, width = 8, height = 6, dpi = 300)
 
 # Close the graphics device
 dev.off()
