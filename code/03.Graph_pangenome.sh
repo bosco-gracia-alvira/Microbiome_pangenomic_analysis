@@ -44,10 +44,10 @@ count=$(echo "$species_count" | grep -w "$REPLY" | awk '{print $1}')
 
 # Check if the count is equal to 1
 if [ "$count" -eq 1 ]; then
-  echo "There is only one genome available for the species $REPLY." There is no need to make a graph pangenome.
+  echo "There is only one genome available for the species $REPLY. There is no need to make a graph pangenome."
   exit
 else
-  echo "There are $count genomes available for the species $REPLY." Thus, we will make a pangenome.
+  echo "There are $count genomes available for the species $REPLY. Thus, we will make a pangenome."
 fi
 
 # Create the folder for the species
