@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup}
-knitr::opts_knit$set(root.dir = "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/SNPs_analysis")
+knitr::opts_knit$set(root.dir = "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data")
 knitr::opts_chunk$set(echo = FALSE)
 library(lattice)
 library(data.table)
@@ -26,7 +26,6 @@ args <- commandArgs(trailingOnly = TRUE)
 
 # The first argument will be the value of $REPLY
 reply <- args[1]
-reply <- "Lactiplantibacillus_plantarum"
 
 # Print the value of reply (for debugging purposes)
 print(paste("The value of REPLY is:", reply))
