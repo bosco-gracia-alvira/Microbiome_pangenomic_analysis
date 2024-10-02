@@ -48,7 +48,7 @@ freq <- fread(paste0(data_path,"/",reply,".freq"),sep="\t",header=T, colClasses 
 
 # Make the headers pretty :)
 colnames(freq) <- gsub("^#", "", colnames(freq))          # Remove "#"
-colnames(freq) <- gsub("^\\[.*?\\]", "", colnames(freq))  # Remove anything between brackets
+colnames(freq) <- gsub("^.*\\[.*?\\]", "", colnames(freq))  # Remove anything between brackets
 colnames(freq) <- gsub(":AD$", "", colnames(freq))        # Remove ":AD"
 
 ```
