@@ -230,3 +230,6 @@ rm -r "${LOCAL:?}/${REPLY:?}"
 
 # This script plots the PCA of the samples based on the SNPs frequency
 Rscript "$WORKDIR"/../code/05.SNPs_plotting.Rmd "$REPLY"
+
+# This is another way of rendering an Rmd file according to copilot
+#Rscript -e "rmarkdown::render("$WORKDIR"/../code/05.SNPs_plotting.Rmd, params = list(species = '$REPLY'))"
