@@ -9,8 +9,7 @@ WORKDIR="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome
 ISOLATES="$WORKDIR/Isolates"
 
 ### COMMANDS
-IFS="
-"
+IFS=$'\n'
 
 # First argument of the script is the species to analyse
 REPLY=$1
