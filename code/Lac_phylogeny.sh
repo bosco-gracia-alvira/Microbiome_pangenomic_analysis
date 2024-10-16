@@ -71,7 +71,7 @@ gtdbtk identify \
     --cpus 20
 
 gtdbtk align \
-    --taxa_filter "g__Lactiplantibacillus" \
+    --taxa_filter "s__Lactiplantibacillus paraplantarum" \
     --identify_dir identity \
     --out_dir alignment \
     --cpus 20
