@@ -211,9 +211,6 @@ pca_merged$name <- gsub("_contigs$", "", pca_merged$name)
 pca_pool <- subset(pca_merged, pca_merged$Source=="Pool")
 pca_isolate <- subset(pca_merged, pca_merged$Source=="Isolate")
 
-# Open a graphics device (e.g., PNG)
-png(filename = paste0("PCA_temp_",reply,".png"))
-
 # Plot the PCA colouring the samples by isolation temperature regime
 PCA_temp <- ggplot() +
                 geom_point(data = pca_isolate, aes(x = PC1, y = PC2, color = Temperature, shape = Source), size = 1, alpha = 0.4) +
@@ -231,12 +228,6 @@ PCA_temp <- ggplot() +
 # Save the plot using ggsave
 ggsave(filename = paste0("PCA_temp_",reply,".png"), plot = PCA_temp, path = visuals_path, width = 6, height = 4, dpi = 300)
 
-# Close the graphics device
-dev.off()
-
-# Open a graphics device (e.g., PNG)
-png(filename = paste0("PCA_SFS_",reply,".png"))
-
 # Plot the PCA colouring the samples by median AF
 PCA_SFS <- ggplot() +
               geom_point(data = pca_isolate, aes(x = PC1, y = PC2, color = median_SFS, shape = Source), size = 1, alpha = 0.4) +
@@ -253,9 +244,6 @@ PCA_SFS <- ggplot() +
 
 # Save the plot using ggsave
 ggsave(filename = paste0("PCA_SFS_",reply,".png"), plot = PCA_SFS, path = visuals_path, width = 6, height = 4, dpi = 300)
-
-# Close the graphics device
-dev.off()
 
 ```
 
