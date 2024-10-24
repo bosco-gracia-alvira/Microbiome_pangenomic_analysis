@@ -6,7 +6,6 @@
 
 # Set the paths
 WORKDIR="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny"
-FASTAS="$WORKDIR/ENAfastas"
 TEMP="/Users/bgracia/PhD_local/temp"
 
 ### COMMANDS
