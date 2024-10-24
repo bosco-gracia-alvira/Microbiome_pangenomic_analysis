@@ -62,10 +62,6 @@ tree_merged <- tree_merged %>%
     left_join(metadata, by = c("label" = "Strain"))
 
 # Build the tree and save it in a figure
-# Open a graphics device (e.g., PNG)
-png(filename = "Lac_phylogeny.png")
-
-
 tree_plot <- ggtree(tree, size = 0.3) %<+% tree_merged + 
                 geom_tippoint(aes(color = Source), size = 0.5) +
                 geom_tiplab(aes(color = Source), size = 2) +
@@ -76,15 +72,13 @@ tree_plot
 
 ggsave(filename = "Lac_phylogeny.png", plot = tree_plot, path = visuals_path, width = 20, height = 6, dpi = 300)
 
-# Close the graphics device
-dev.off()
 
 ```
 
 
 ```{r Functional tree}
 
-# Load the genes presence-absence matrix
+# Load the genes presence-absence matrix and set the gene names as row names
 pan <- read.table(pan_path, header = TRUE, check.names = FALSE)
 row.names(pan) <- pan$Gene
 pan <- pan %>% select(-Gene)
@@ -92,34 +86,38 @@ pan <- pan %>% select(-Gene)
 # Transpose the data so that rows are genomes and columns are genes
 tpan <- as.data.frame(t(pan))
 
-# Perform hierarchical clustering
+# Perform hierarchical clustering of the binary distances between genomes
 dist_pan <- dist(tpan, method = "binary")
 hclust_pan <- hclust(dist_pan, method = "ward.D")
 
-# Get the order of labels in the dendrogram
-ordered_labels <- labels(dendro_pan)[order.dendrogram(dendro_pan)]
-metadata_pan <- metadata[J(ordered_labels)]
+# Convert hclust object to dendrogram
+dendro_pan <- as.dendrogram(hclust_pan)
 
-
-
-
+# Make a metadata file in which the rows are sorted as in the dendrogram
+# This will be needed to match the colours to the correct labels
+metadata_pan <- metadata[J(labels(dendro_pan))]
 
 # Extract the colors from the reordered metadata
-dendro_cols <- as.character(metadata_pan$Colour)
 # Assign colors to the dendrogram labels
-labels_colors(dendro_pan) <- dendro_cols
-
-# Plot the colored dendrogram
-plot(dendro_pan, ylab = "Binary distance")
-
-# Build the dendrogram
-dendro_pan <- as.dendrogram(hclust_pan)
 dendro_cols <- as.character(metadata_pan$Colour)
 labels_colors(dendro_pan) <- dendro_cols
-plot(dendro_pan, ylab = "Binary distance")
 
-labels_colors(dendro_pan) <- dendro_cols
-plot(dendro_pan, ylab="Binary distance")
+# Convert the dendrogram to a ggdend object
+ggdendro_pan <- as.ggdend(dendro_pan)
+
+# Create a ggplot object for the dendrogram
+dendro_plot <- ggplot() +
+  geom_segment(data = ggdendro_pan$segments, aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_point(data = ggdendro_pan$labels, aes(x = x, y = y, color = dendro_cols), size = 2) +
+  #geom_text(data = ggdendro_pan$labels, aes(x = x, y = y, label = label, color = dendro_cols), angle = 90, hjust = 1, size = 3) +
+  scale_color_identity() +
+  theme(plot.margin = margin(1, 1, 1, 1)) +  # Add more space at the bottom
+  labs(title = "Functional clustering of the isolates", y = "Binary distance", x = "Strain")
+
+dendro_plot
+
+# Save the plot using ggsave
+ggsave(filename = "Lac_dendrogram.png", plot = dendro_plot, path = visuals_path, width = 20, height = 14, dpi = 300)
 
 ```
 
@@ -147,11 +145,9 @@ percentage_variance_explained <- variance_explained * 100
 pca_merged <- merge(pca_data, metadata, by="Strain")
 color_vector <- setNames(pca_merged$Colour, pca_merged$Source)
 
-# It's plotting time. First we plot the PCs 1 and 2
-png(filename = "Lac_PCA12.png")
-
+# We plot PC1vsPC2 and PC4vsPC5, we are not interested in PC3, plot it if you want though
 pca12 <- ggplot(pca_merged, aes(x = PC1, y = PC2, colour = Source)) +
-              geom_point(size = 3, alpha=0.75) +
+              geom_point(size = 3, alpha=0.5) +
               #geom_text(aes(label = genome), color = "black") +
               theme_minimal() +
               scale_colour_manual(values = color_vector) +
@@ -162,16 +158,11 @@ pca12 <- ggplot(pca_merged, aes(x = PC1, y = PC2, colour = Source)) +
 
 pca12
 
-ggsave(filename = "Lac_PCA12.png", plot = pca12, path = visuals_path, width = 20, height = 6, dpi = 300)
+ggsave(filename = "Lac_PCA12.png", plot = pca12, path = visuals_path, width = 10, height = 6, dpi = 300)
 
-dev.off()
-
-
-# We skip PC3 because it just separates one sample from the rest of the data set, and we don't care about it
-png(filename = "Lac_PCA45.png")
 
 pca45 <- ggplot(pca_merged, aes(x = PC4, y = PC5, colour = Source)) +
-              geom_point(size = 3, alpha=0.75) +
+              geom_point(size = 3, alpha=0.5) +
               #geom_text(aes(label = genome), color = "black") +
               theme_minimal() +
               scale_colour_manual(values = color_vector) +
@@ -182,9 +173,7 @@ pca45 <- ggplot(pca_merged, aes(x = PC4, y = PC5, colour = Source)) +
 
 pca45
 
-ggsave(filename = "Lac_PCA45.png", plot = pca45, path = visuals_path, width = 20, height = 6, dpi = 300)
-
-dev.off()
+ggsave(filename = "Lac_PCA45.png", plot = pca45, path = visuals_path, width = 10, height = 6, dpi = 300)
 
 ```
 
