@@ -1,0 +1,212 @@
+---
+title: "Lac_phylogeny"
+author: "Bosco Gracia Alvira"
+date: "2024-10-16"
+output: html_document
+---
+
+```{r Load libraries}
+
+library(tidyverse) ; packageVersion("tidyverse")
+library(ggtree) ; packageVersion("ggtree")
+library(ggdendro) ; packageVersion("ggdendro")
+library(treeio) ; packageVersion("treeio")
+library(patchwork) ; packageVersion("patchwork")
+library(readr) ; packageVersion("readr")
+library(phyloseq) ; packageVersion("phyloseq")
+library(vegan) ; packageVersion("vegan")
+library(dplyr) ; packageVersion("dplyr")
+library(RColorBrewer) ; packageVersion("RColorBrewer")
+library(dendextend) ; packageVersion("dendextend")
+library(ape) ; packageVersion("ape")
+library(data.table) ; packageVersion("data.table")
+
+```
+
+```{r Set paths}
+
+tree_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/parsnp/parsnp.tree"
+pan_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/roary/gene_presence_absence.Rtab"
+metadata_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/metadata.tsv"
+visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
+
+```
+
+```{r Phylogenetic tree}
+
+# Load the metadata file and set the Strains as key
+metadata <- fread(metadata_path)
+row.names(metadata) <- metadata$Strain
+setkey(metadata, Strain)
+
+# Load the representative genomes tree based on core genome SNPs
+tree <- read.tree(tree_path)
+tree <- ladderize(tree, right = FALSE)
+
+# Remove the .fa suffix from the tip labels
+tree$tip.label <- sub("\\.fa$", "", tree$tip.label)
+
+# Modify the outgroup tip label
+tree$tip.label[tree$tip.label == "Lpla_ref.gbff.fna"] <- "Reference"
+
+# Re-root the tree to the outgroup
+new_root_node <- which(tree$tip.label == "NIZO1840")
+
+# Re-root the tree
+tree <- root(tree, new_root_node)
+
+# Convert the tree to a tibble
+tree_merged <- as_tibble(tree)
+
+# Merge the tree data with metadata
+tree_merged <- tree_merged %>%
+    left_join(metadata, by = c("label" = "Strain"))
+
+# Build the tree and save it in a figure
+tree_plot <- ggtree(tree, size = 0.3) %<+% tree_merged + 
+                geom_tippoint(aes(color = Source), size = 0.5) +
+                geom_tiplab(aes(color = Source), size = 2) +
+                scale_color_manual(values = setNames(metadata$Colour, metadata$Source)) +
+                theme_tree2()
+
+tree_plot
+
+#ggsave(filename = "Lac_phylogeny_rep.png", plot = tree_plot, path = visuals_path, width = 20, height = 6, dpi = 300)
+
+
+```
+
+
+```{r Functional tree}
+
+# We want to subset the representatives
+metadata <- metadata %>%
+  filter(!(Source == "HOT" & Strain != "S239")) %>%
+  filter(!(Source == "COLD" & Strain != "S103")) %>%
+  filter(!(Source == "COLD-CONSTANT")) %>%
+  filter(!(Source == "BASE" & Strain != "B89")) %>%
+  filter(!(Strain == "Reference"))
+
+# Load the genes presence-absence matrix and set the gene names as row names
+pan <- read.table(pan_path, header = TRUE, check.names = FALSE)
+row.names(pan) <- pan$Gene
+pan <- pan %>% select(-Gene)
+
+# Transpose the data so that rows are genomes and columns are genes
+tpan <- as.data.frame(t(pan))
+tpan$Strain <- row.names(tpan)
+tpan <- tpan %>%
+  semi_join(metadata, by = "Strain")
+tpan <- tpan %>% select(-Strain)
+
+# Perform hierarchical clustering of the binary distances between genomes
+dist_pan <- dist(tpan, method = "binary")
+hclust_pan <- hclust(dist_pan, method = "ward.D")
+
+# Convert hclust object to dendrogram
+dendro_pan <- as.dendrogram(hclust_pan)
+
+# Make a metadata file in which the rows are sorted as in the dendrogram
+# This will be needed to match the colours to the correct labels
+metadata_pan <- metadata[J(labels(dendro_pan))]
+
+
+# Extract the colors from the reordered metadata
+# Assign colors to the dendrogram labels
+dendro_cols <- as.character(metadata_pan$Colour)
+labels_colors(dendro_pan) <- dendro_cols
+
+# Convert the dendrogram to a ggdend object
+ggdendro_pan <- as.ggdend(dendro_pan)
+
+# Create a ggplot object for the dendrogram
+dendro_plot <- ggplot() +
+  geom_segment(data = ggdendro_pan$segments, aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_point(data = ggdendro_pan$labels, aes(x = x, y = y, color = dendro_cols), size = 2) +
+  geom_text(data = ggdendro_pan$labels, aes(x = x, y = y, label = label, color = dendro_cols), hjust = -0.2, size = 3) +
+  scale_color_identity() +
+  theme_classic() +
+  coord_flip() +
+  scale_y_reverse() +
+  scale_x_reverse() +
+  labs(title = "Functional clustering of the isolates", y = "Binary distance", x = "Isolate")
+
+dendro_plot
+
+# Save the plot using ggsave
+ggsave(filename = "Lac_dendrogram_rep.png", plot = dendro_plot, path = visuals_path, width = 20, height = 10, dpi = 300)
+
+```
+
+```{r Functional ordination}
+# Hierarchical clustering is okay, but I prefer PCAs :)
+# We can use the same presence/absence table
+
+# Calculate PCA of the presence/absence pattern
+pca_pan <- prcomp(tpan, retx = T)
+
+# Yiwen has told me that the best is to do the PCA without my samples!
+# Then I can calculate the coordinates of my samples (x) by multiplying pca_pan$rotation and tpan for my samples and plot it with the other samples. 
+#pca_pan <- prcomp(tpan_NCBI, retx = T)
+#x_my_samples <- pca_pan$rotation ** tpan_my_samples
+#totalx <- rbind(pca_pan$x,x_my_samples)
+
+# Pick the coordinates from the PCA and save it in a new data frame
+# Include the strain name
+pca_data <- as.data.frame(pca_pan$x)
+pca_data$Strain <- rownames(pca_data)
+
+# How much variance is explained by each PC? 
+# This is the square of the standard deviations divided by the total variance.
+sdev <- pca_pan$sdev
+variance_explained <- sdev^2 / sum(sdev^2)
+percentage_variance_explained <- variance_explained * 100
+
+# We merge each genome's coordinates and metadata
+# We set a vector with the colours that we want for each isolation source
+pca_merged <- merge(pca_data, metadata, by="Strain")
+color_vector <- setNames(pca_merged$Colour, pca_merged$Source)
+
+# We plot different PCs
+pca12 <- ggplot(pca_merged, aes(x = PC1, y = PC2, colour = Source)) +
+              geom_point(size = 3, alpha=0.5) +
+              #geom_text(aes(label = Strain), size=1) +
+              theme_minimal() +
+              scale_colour_manual(values = color_vector) +
+              labs(title = "Isolates PCA based on genes presence/absence",
+                   x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
+                   y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
+                   color = "Source of isolation")
+
+pca12
+
+pca23 <- ggplot(pca_merged, aes(x = PC2, y = PC3, colour = Source)) +
+              geom_point(size = 3, alpha=0.5) +
+              #geom_text(aes(label = Strain), size=1) +
+              theme_minimal() +
+              scale_colour_manual(values = color_vector) +
+              labs(title = "Isolates PCA based on genes presence/absence",
+                   x = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
+                   y = paste0("PC3 (", round(percentage_variance_explained[3], 2), "% variance)"),
+                   color = "Source of isolation")
+
+pca23
+
+ggsave(filename = "Lac_PCA23_rep.png", plot = pca23, path = visuals_path, width = 10, height = 6, dpi = 300)
+
+
+pca45 <- ggplot(pca_merged, aes(x = PC4, y = PC5, colour = Source)) +
+              geom_point(size = 3, alpha=0.5) +
+              #geom_text(aes(label = Strain), size=1) +
+              theme_minimal() +
+              scale_colour_manual(values = color_vector) +
+              labs(title = "Isolates PCA based on genes presence/absence",
+                   x = paste0("PC4 (", round(percentage_variance_explained[4], 2), "% variance)"),
+                   y = paste0("PC5 (", round(percentage_variance_explained[5], 2), "% variance)"),
+                   color = "Source of isolation")
+
+pca45
+
+ggsave(filename = "Lac_PCA45_rep.png", plot = pca45, path = visuals_path, width = 10, height = 6, dpi = 300)
+
+```
