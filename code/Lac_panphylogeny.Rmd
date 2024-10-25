@@ -11,6 +11,7 @@ library(tidyverse) ; packageVersion("tidyverse")
 library(ggtree) ; packageVersion("ggtree")
 library(ggdendro) ; packageVersion("ggdendro")
 library(treeio) ; packageVersion("treeio")
+library(patchwork) ; packageVersion("patchwork")
 library(readr) ; packageVersion("readr")
 library(phyloseq) ; packageVersion("phyloseq")
 library(vegan) ; packageVersion("vegan")
@@ -111,15 +112,61 @@ dendro_plot <- ggplot() +
   geom_point(data = ggdendro_pan$labels, aes(x = x, y = y, color = dendro_cols), size = 2) +
   #geom_text(data = ggdendro_pan$labels, aes(x = x, y = y, label = label, color = dendro_cols), angle = 90, hjust = 1, size = 3) +
   scale_color_identity() +
-  theme(plot.margin = margin(1, 1, 1, 1)) +  # Add more space at the bottom
-  labs(title = "Functional clustering of the isolates", y = "Binary distance", x = "Strain")
+  theme_classic() +
+  coord_flip() +
+  #scale_y_reverse() +
+  scale_x_reverse() +
+  labs(title = "Functional clustering of the isolates", y = "Binary distance", x = "Isolate")
 
 dendro_plot
 
 # Save the plot using ggsave
-ggsave(filename = "Lac_dendrogram.png", plot = dendro_plot, path = visuals_path, width = 20, height = 14, dpi = 300)
+ggsave(filename = "Lac_dendrogram.png", plot = dendro_plot, path = visuals_path, width = 20, height = 10, dpi = 300)
 
 ```
+
+```{r Combine the tree and dendrogram}
+
+
+# Extract labels and coordinates from tree_plot and dendro_plot
+phylo_labels <- tree_plot$data$label
+phylo_labels <- na.omit(phylo_labels)
+dendro_labels <- ggdendro_pan$labels$label
+
+# Create the link_data data frame
+link_data <- data.frame(
+  phylo_x = rep(max(tree_plot$data$x, na.rm = TRUE), length(phylo_labels)),
+  phylo_y = tree_plot$data$y[match(phylo_labels, tree_plot$data$label)],
+  dendro_x = rep(min(ggdendro_pan$labels$x, na.rm = TRUE), length(dendro_labels)),
+  dendro_y = ggdendro_pan$labels$y[match(dendro_labels, ggdendro_pan$labels$label)]
+)
+
+# Check for any NA values in link_data
+if (any(is.na(link_data))) {
+  warning("There are NA values in link_data. Please check the labels and data.")
+}
+
+# Combine the plots using patchwork and add linking segments
+combined_plot <- tree_plot + 
+  geom_segment(data = link_data, aes(x = phylo_x, y = phylo_y, xend = dendro_x, yend = dendro_y), color = "grey") +
+  dendro_plot + 
+  plot_layout(ncol = 1)
+
+# Set the output file path
+output_file <- file.path(visuals_path, "combined_plot.png")
+
+# Save the combined plot using ggsave
+#ggsave(output_file, plot = combined_plot, width = 15, height = 16, dpi = 300)
+
+
+```
+
+
+
+
+
+
+
 
 
 ```{r Functional ordination}
@@ -127,7 +174,7 @@ ggsave(filename = "Lac_dendrogram.png", plot = dendro_plot, path = visuals_path,
 # We can use the same presence/absence table
 
 # Calculate PCA of the presence/absence pattern
-pca_pan <- prcomp(tpan)
+pca_pan <- prcomp(tpan, retx = T)
 
 # Pick the coordinates from the PCA and save it in a new data frame
 # Include the strain name
@@ -176,8 +223,5 @@ pca45
 ggsave(filename = "Lac_PCA45.png", plot = pca45, path = visuals_path, width = 10, height = 6, dpi = 300)
 
 ```
-
-
-
 
 
