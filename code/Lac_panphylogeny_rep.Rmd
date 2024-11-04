@@ -1,5 +1,5 @@
 ---
-title: "Lac_phylogeny"
+title: "Lac_phylogeny_representatives"
 author: "Bosco Gracia Alvira"
 date: "2024-10-16"
 output: html_document
@@ -11,6 +11,7 @@ library(tidyverse) ; packageVersion("tidyverse")
 library(ggtree) ; packageVersion("ggtree")
 library(ggdendro) ; packageVersion("ggdendro")
 library(treeio) ; packageVersion("treeio")
+library(pvclust) ; packageVersion("pvclust")
 library(patchwork) ; packageVersion("patchwork")
 library(readr) ; packageVersion("readr")
 library(phyloseq) ; packageVersion("phyloseq")
@@ -27,6 +28,7 @@ library(data.table) ; packageVersion("data.table")
 
 tree_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/parsnp/parsnp.tree"
 pan_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/roary/gene_presence_absence.Rtab"
+pvclust_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/roary/pvclust_result.rds"
 metadata_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/metadata.tsv"
 visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
 
@@ -99,42 +101,31 @@ tpan <- tpan %>%
   semi_join(metadata, by = "Strain")
 tpan <- tpan %>% select(-Strain)
 
-# Perform hierarchical clustering of the binary distances between genomes
+# Calculate the binary distances between the samples
 dist_pan <- dist(tpan, method = "binary")
-hclust_pan <- hclust(dist_pan, method = "ward.D")
 
-# Convert hclust object to dendrogram
-dendro_pan <- as.dendrogram(hclust_pan)
+# Perform hierarchical clustering with bootstrap on the distance matrix using pvclust
+set.seed(999)
+pvclust_result <- pvclust(as.matrix(dist_pan), parallel = as.integer(10), method.hclust = "ward.D", nboot = 1000)
 
-# Make a metadata file in which the rows are sorted as in the dendrogram
-# This will be needed to match the colours to the correct labels
-metadata_pan <- metadata[J(labels(dendro_pan))]
+# Extract dendrogram data and transform it to ggdendro format
+dendro_pan <- as.dendrogram(pvclust_result$hclust)
+ggdendro_pan <- dendro_data(dendro_pan)
 
+# Customize the dendrogram
+# Change label colors based on metadata
+label_colors <- metadata$Colour[match(labels(dendro_pan), rownames(metadata))]
+labels_colors(dendro_pan) <- label_colors
 
-# Extract the colors from the reordered metadata
-# Assign colors to the dendrogram labels
-dendro_cols <- as.character(metadata_pan$Colour)
-labels_colors(dendro_pan) <- dendro_cols
+# Plot the dendrogram and save it
+# Open a PNG device
+png(filename = paste0(visuals_path,"/Lac_dendrogram_rep.png"), width = 3200, height = 1600, res = 300)
+plot(dendro_pan)
+text(pvclust_result, col=c(au=2, bp="transparent", edge="transparent"), print.num=FALSE, float=0.01, cex=0.5)
 
-# Convert the dendrogram to a ggdend object
-ggdendro_pan <- as.ggdend(dendro_pan)
+# Close the device
+dev.off()
 
-# Create a ggplot object for the dendrogram
-dendro_plot <- ggplot() +
-  geom_segment(data = ggdendro_pan$segments, aes(x = x, y = y, xend = xend, yend = yend)) +
-  geom_point(data = ggdendro_pan$labels, aes(x = x, y = y, color = dendro_cols), size = 2) +
-  geom_text(data = ggdendro_pan$labels, aes(x = x, y = y, label = label, color = dendro_cols), hjust = -0.2, size = 3) +
-  scale_color_identity() +
-  theme_classic() +
-  coord_flip() +
-  scale_y_reverse() +
-  scale_x_reverse() +
-  labs(title = "Functional clustering of the isolates", y = "Binary distance", x = "Isolate")
-
-dendro_plot
-
-# Save the plot using ggsave
-ggsave(filename = "Lac_dendrogram_rep.png", plot = dendro_plot, path = visuals_path, width = 20, height = 10, dpi = 300)
 
 ```
 
