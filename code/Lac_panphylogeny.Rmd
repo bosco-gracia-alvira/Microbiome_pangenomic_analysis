@@ -163,12 +163,6 @@ output_file <- file.path(visuals_path, "combined_plot.png")
 
 
 
-
-
-
-
-
-
 ```{r Functional ordination}
 # Hierarchical clustering is okay, but I prefer PCAs :)
 # We can use the same presence/absence table
