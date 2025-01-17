@@ -30,23 +30,27 @@ mkdir -p "$TEMP"/{parsnp,gffs}
 cp -r "$WORKDIR/genomes" "$TEMP"
 
 # Download the reference genome in GenBank format using wget
-wget -P "$TEMP/parsnp" \
+wget -P "$TEMP" \
     ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/203/855/GCA_000203855.3_ASM20385v3/GCA_000203855.3_ASM20385v3_genomic.gbff.gz
-# Unzip the downloaded file
-gunzip \
-    --to-stdout "$TEMP/parsnp/GCA_000203855.3_ASM20385v3_genomic.gbff.gz" > "$TEMP/parsnp/Lpla_ref.gbff"
-rm "$TEMP/parsnp/GCA_000203855.3_ASM20385v3_genomic.gbff.gz"
 
-wget -P "$TEMP/parsnp" \
-    ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/203/855/GCA_000203855.3_ASM20385v3/GCA_000203855.3_ASM20385v3_genomic.fna.gz
 # Unzip the downloaded file
 gunzip \
-    --to-stdout "$TEMP/parsnp/GCA_000203855.3_ASM20385v3_genomic.fna.gz" > "$TEMP/parsnp/Lpla_ref.fna"
-rm "$TEMP/parsnp/GCA_000203855.3_ASM20385v3_genomic.fna.gz"
+    --to-stdout "$TEMP/GCA_000203855.3_ASM20385v3_genomic.gbff.gz" > "$TEMP/Lpla_ref.gbff"
+rm "$TEMP/GCA_000203855.3_ASM20385v3_genomic.gbff.gz"
+
+
+# Download the reference genome in fna formats using wget
+wget -P "$TEMP" \
+    ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/203/855/GCA_000203855.3_ASM20385v3/GCA_000203855.3_ASM20385v3_genomic.fna.gz
+
+# Unzip the downloaded file
+gunzip \
+    --to-stdout "$TEMP/GCA_000203855.3_ASM20385v3_genomic.fna.gz" > "$TEMP/Lpla_ref.fna"
+rm "$TEMP/GCA_000203855.3_ASM20385v3_genomic.fna.gz"
 
 # Run parsnp, that extracts SNPs common to all the genomes
 parsnp \
-    -g "$TEMP/parsnp/Lpla_ref.gbff" \
+    -g "$TEMP/Lpla_ref.gbff" \
     -d "$TEMP/genomes" \
     -o "$TEMP/parsnp" \
     -p 12

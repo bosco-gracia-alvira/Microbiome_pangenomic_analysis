@@ -25,7 +25,7 @@ library(data.table) ; packageVersion("data.table")
 
 ```{r Set paths}
 
-tree_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/parsnp/parsnp.tree"
+tree_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/snp-sites/Lpla.phylip.treefile"
 pan_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/roary/gene_presence_absence.Rtab"
 metadata_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/metadata.tsv"
 visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
@@ -50,7 +50,7 @@ tree$tip.label <- sub("\\.fa$", "", tree$tip.label)
 tree$tip.label[tree$tip.label == "Lpla_ref.gbff.fna"] <- "Reference"
 
 # Re-root the tree to the outgroup
-new_root_node <- which(tree$tip.label == "NIZO1840")
+new_root_node <- which(tree$tip.label == "NIZO2776")
 
 # Re-root the tree
 tree <- root(tree, new_root_node)
@@ -79,10 +79,16 @@ ggsave(filename = "Lac_phylogeny.png", plot = tree_plot, path = visuals_path, wi
 
 ```{r Functional tree}
 
+# Select our isolates, except for the representatives
+hot <- metadata %>% filter(Source == "HOT") %>% select(Strain) %>% filter(Strain != "S239")
+base <- metadata %>% filter(Source == "BASE") %>% select(Strain) %>% filter(Strain != "B89")
+cold <- metadata %>% filter(Source %in% c("COLD", "COLD-CONSTANT")) %>% select(Strain) %>% filter(Strain != "S103")
+remove_cols <- c(hot$Strain, cold$Strain, base$Strain)
+
 # Load the genes presence-absence matrix and set the gene names as row names
 pan <- read.table(pan_path, header = TRUE, check.names = FALSE)
 row.names(pan) <- pan$Gene
-pan <- pan %>% select(-Gene)
+pan <- pan %>% select(-Gene) %>% select(-one_of(remove_cols))
 
 # Transpose the data so that rows are genomes and columns are genes
 tpan <- as.data.frame(t(pan))
@@ -122,42 +128,6 @@ dendro_plot
 
 # Save the plot using ggsave
 ggsave(filename = "Lac_dendrogram.png", plot = dendro_plot, path = visuals_path, width = 20, height = 10, dpi = 300)
-
-```
-
-```{r Combine the tree and dendrogram}
-
-
-# Extract labels and coordinates from tree_plot and dendro_plot
-phylo_labels <- tree_plot$data$label
-phylo_labels <- na.omit(phylo_labels)
-dendro_labels <- ggdendro_pan$labels$label
-
-# Create the link_data data frame
-link_data <- data.frame(
-  phylo_x = rep(max(tree_plot$data$x, na.rm = TRUE), length(phylo_labels)),
-  phylo_y = tree_plot$data$y[match(phylo_labels, tree_plot$data$label)],
-  dendro_x = rep(min(ggdendro_pan$labels$x, na.rm = TRUE), length(dendro_labels)),
-  dendro_y = ggdendro_pan$labels$y[match(dendro_labels, ggdendro_pan$labels$label)]
-)
-
-# Check for any NA values in link_data
-if (any(is.na(link_data))) {
-  warning("There are NA values in link_data. Please check the labels and data.")
-}
-
-# Combine the plots using patchwork and add linking segments
-combined_plot <- tree_plot + 
-  geom_segment(data = link_data, aes(x = phylo_x, y = phylo_y, xend = dendro_x, yend = dendro_y), color = "grey") +
-  dendro_plot + 
-  plot_layout(ncol = 1)
-
-# Set the output file path
-output_file <- file.path(visuals_path, "combined_plot.png")
-
-# Save the combined plot using ggsave
-#ggsave(output_file, plot = combined_plot, width = 15, height = 16, dpi = 300)
-
 
 ```
 
@@ -219,3 +189,37 @@ ggsave(filename = "Lac_PCA45.png", plot = pca45, path = visuals_path, width = 10
 ```
 
 
+```{r Combine the tree and dendrogram}
+
+# Extract labels and coordinates from tree_plot and dendro_plot
+phylo_labels <- tree_plot$data$label
+phylo_labels <- na.omit(phylo_labels)
+dendro_labels <- ggdendro_pan$labels$label
+
+# Create the link_data data frame
+link_data <- data.frame(
+  phylo_x = rep(max(tree_plot$data$x, na.rm = TRUE), length(phylo_labels)),
+  phylo_y = tree_plot$data$y[match(phylo_labels, tree_plot$data$label)],
+  dendro_x = rep(min(ggdendro_pan$labels$x, na.rm = TRUE), length(dendro_labels)),
+  dendro_y = ggdendro_pan$labels$y[match(dendro_labels, ggdendro_pan$labels$label)]
+)
+
+# Check for any NA values in link_data
+if (any(is.na(link_data))) {
+  warning("There are NA values in link_data. Please check the labels and data.")
+}
+
+# Combine the plots using patchwork and add linking segments
+combined_plot <- tree_plot + 
+  geom_segment(data = link_data, aes(x = phylo_x, y = phylo_y, xend = dendro_x, yend = dendro_y), color = "grey") +
+  dendro_plot + 
+  plot_layout(ncol = 1)
+
+# Set the output file path
+output_file <- file.path(visuals_path, "combined_plot.png")
+
+# Save the combined plot using ggsave
+#ggsave(output_file, plot = combined_plot, width = 15, height = 16, dpi = 300)
+
+
+```
