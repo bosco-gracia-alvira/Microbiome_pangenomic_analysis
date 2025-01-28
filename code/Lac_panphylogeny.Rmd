@@ -52,8 +52,8 @@ tree$tip.label[tree$tip.label == "Lpla_ref.gbff.fna"] <- "Reference"
 # Re-root the tree to the outgroup
 new_root_node <- which(tree$tip.label == "NIZO2776")
 
-# Re-root the tree
-tree <- root(tree, new_root_node)
+# Re-root the tree to the midpoint between the outgroup and the rest of the tree
+tree <- midpoint.root(tree, node.labels=new_root_node)
 
 # Convert the tree to a tibble
 tree_merged <- as_tibble(tree)
@@ -67,12 +67,12 @@ tree_plot <- ggtree(tree, size = 0.3) %<+% tree_merged +
                 geom_tippoint(aes(color = Source), size = 0.5) +
                 geom_tiplab(aes(color = Source), size = 2) +
                 scale_color_manual(values = setNames(metadata$Colour, metadata$Source)) +
-                theme_tree2()
+                theme_tree2() +
+                scale_y_continuous(expand = c(0.05, 0.20))  # Adjust the expand parameter as needed
 
 tree_plot
 
 ggsave(filename = "Lac_phylogeny.png", plot = tree_plot, path = visuals_path, width = 20, height = 6, dpi = 300)
-
 
 ```
 
