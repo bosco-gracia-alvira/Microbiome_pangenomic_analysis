@@ -1,0 +1,71 @@
+---
+title: "Lac_TempGen"
+author: "Bosco Gracia Alvira"
+date: "2025-01-27"
+output: html_document
+---
+
+```{r Load libraries}
+
+library(tidyverse) ; packageVersion("tidyverse")
+library(patchwork) ; packageVersion("patchwork")
+library(readr) ; packageVersion("readr")
+library(vegan) ; packageVersion("vegan")
+library(dplyr) ; packageVersion("dplyr")
+library(RColorBrewer) ; packageVersion("RColorBrewer")
+library(dendextend) ; packageVersion("dendextend")
+library(ape) ; packageVersion("ape")
+library(data.table) ; packageVersion("data.table")
+library(readxl) ; packageVersion("readxl")
+
+```
+
+
+```{r Set paths}
+
+metadata_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Temp_Gen_association/metadata.xlsx"
+visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
+
+```
+
+
+```{r}
+
+# Load the metadata file
+metadata <- read_excel(metadata_path)
+
+# Create a contingency table
+contingency <- table(metadata$Genotype, metadata$Temperature)
+
+# Perform the Chi-Square Test of Independence
+chisq_test <- chisq.test(comparison)
+
+# Print the results
+print(chisq_test)
+
+
+# List of parameters to test
+parameters <- c("Temperature", "Population", "Generation")
+
+# Initialize a list to store the results
+results <- list()
+
+# Perform Chi-Square tests for each parameter
+for (param in parameters) {
+  contingency_table <- table(metadata$Genotype, metadata[[param]])
+  chisq_test <- chisq.test(contingency_table)
+  results[[param]] <- chisq_test$p.value
+}
+
+# Convert the results to a data frame
+results_df <- data.frame(Parameter = names(results), P_Value = unlist(results))
+
+# Apply Bonferroni correction
+results_df$Adjusted_P_Value <- p.adjust(results_df$P_Value, method = "bonferroni")
+
+# Print the results
+print(results_df)
+
+```
+
+
