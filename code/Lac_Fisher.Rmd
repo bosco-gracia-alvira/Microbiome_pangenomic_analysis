@@ -1,5 +1,5 @@
 ---
-title: "Lac_TempGen"
+title: "Lac_Fisher"
 author: "Bosco Gracia Alvira"
 date: "2025-01-27"
 output: html_document
@@ -32,29 +32,23 @@ visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Mi
 ```{r}
 
 # Load the metadata file
-metadata <- read_excel(metadata_path)
-
-# Create a contingency table
-contingency <- table(metadata$Genotype, metadata$Temperature)
-
-# Perform the Chi-Square Test of Independence
-chisq_test <- chisq.test(comparison)
-
-# Print the results
-print(chisq_test)
+metadata <- read_excel(metadata_path) %>% 
+                          mutate(Temperature_random = sample(Temperature),
+                                 Population_random = sample(Population),
+                                 Generation_random = sample(Generation))
 
 
 # List of parameters to test
-parameters <- c("Temperature", "Population", "Generation")
+parameters <- c("Temperature", "Population", "Generation", "Temperature_random", "Population_random", "Generation_random")
 
 # Initialize a list to store the results
 results <- list()
 
-# Perform Chi-Square tests for each parameter
+# Perform Fisher's exact tests for each parameter
 for (param in parameters) {
   contingency_table <- table(metadata$Genotype, metadata[[param]])
-  chisq_test <- chisq.test(contingency_table)
-  results[[param]] <- chisq_test$p.value
+  fisher_test <- fisher.test(contingency_table)
+  results[[param]] <- fisher_test$p.value
 }
 
 # Convert the results to a data frame
@@ -67,5 +61,3 @@ results_df$Adjusted_P_Value <- p.adjust(results_df$P_Value, method = "bonferroni
 print(results_df)
 
 ```
-
-
