@@ -26,38 +26,10 @@ fi
 conda activate phylogeny
 
 # Create the parsnp folder
-mkdir -p "$TEMP"/{parsnp,gffs}
+mkdir -p "$TEMP"/{roary,gffs}
 cp -r "$WORKDIR/genomes" "$TEMP"
 
-# Download the reference genome in GenBank format using wget
-wget -P "$TEMP" \
-    ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/203/855/GCA_000203855.3_ASM20385v3/GCA_000203855.3_ASM20385v3_genomic.gbff.gz
-
-# Unzip the downloaded file
-gunzip \
-    --to-stdout "$TEMP/GCA_000203855.3_ASM20385v3_genomic.gbff.gz" > "$TEMP/Lpla_ref.gbff"
-rm "$TEMP/GCA_000203855.3_ASM20385v3_genomic.gbff.gz"
-
-
-# Download the reference genome in fna formats using wget
-wget -P "$TEMP" \
-    ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/203/855/GCA_000203855.3_ASM20385v3/GCA_000203855.3_ASM20385v3_genomic.fna.gz
-
-# Unzip the downloaded file
-gunzip \
-    --to-stdout "$TEMP/GCA_000203855.3_ASM20385v3_genomic.fna.gz" > "$TEMP/Lpla_ref.fna"
-rm "$TEMP/GCA_000203855.3_ASM20385v3_genomic.fna.gz"
-
-# Run parsnp, that extracts SNPs common to all the genomes
-parsnp \
-    -g "$TEMP/Lpla_ref.gbff" \
-    -d "$TEMP/genomes" \
-    -o "$TEMP/parsnp" \
-    -p 12
-
-# Now we want to cluster the genomes based on their functions, for which we will use roary
-
-
+# We want to cluster the genomes based on their functions, for which we will use roary
 # Get GFF files  for each gene
 for i in "$TEMP"/genomes/*.fa
 do
@@ -70,12 +42,27 @@ do
     rm -r "$TEMP/gffs/$base"
 done
 
+# Run roary to build a pangenome
 roary   -e -n \
         -p 16 \
         -f "$TEMP"/roary/ \
         "$TEMP"/gffs/*.gff
 
-mv "$TEMP/parsnp" "$WORKDIR/"
-mv "$TEMP/roary" "$WORKDIR/"
-mv "$TEMP/gffs" "$WORKDIR/"
-rm -r "${TEMP:?}/*"
+# Run snp-sites to extract only the SNPs
+snp-sites \
+    -mvp \
+    -o $TEMP/snp-sites/Lpla \
+    $TEMP/roary/*.aln
+
+# Build the phylogenetic tree using iqtree with 1000 bootstrap replicates and the GTR+ASC model
+cd $TEMP/snp-sites || exit
+iqtree \
+    -s $TEMP/snp-sites/Lpla.phylip \
+    --boot 1000 \
+    -m GTR+ASC \
+    -T 8
+
+# Move the results to the working directory
+#mv "$TEMP/roary" "$WORKDIR/"
+#mv "$TEMP/gffs" "$WORKDIR/"
+#rm -r "${TEMP:?}/*"
