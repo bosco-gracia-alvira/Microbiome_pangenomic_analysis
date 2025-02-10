@@ -26,7 +26,7 @@ fi
 conda activate phylogeny
 
 # Create the parsnp folder
-mkdir -p "$TEMP"/{roary,gffs}
+mkdir -p "$TEMP"/{roary,gffs,snp-sites}
 cp -r "$WORKDIR/genomes" "$TEMP"
 
 # We want to cluster the genomes based on their functions, for which we will use roary
