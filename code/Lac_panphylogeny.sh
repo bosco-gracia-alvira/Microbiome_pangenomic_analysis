@@ -63,6 +63,7 @@ iqtree \
     -T 8
 
 # Move the results to the working directory
-#mv "$TEMP/roary" "$WORKDIR/"
-#mv "$TEMP/gffs" "$WORKDIR/"
+mv "$TEMP/roary" "$WORKDIR/"
+mv "$TEMP/gffs" "$WORKDIR/"
+mv "$TEMP/snp-sites" "$WORKDIR/"
 #rm -r "${TEMP:?}/*"
