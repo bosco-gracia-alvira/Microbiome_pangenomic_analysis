@@ -75,12 +75,14 @@ anvi-get-sequences-for-gene-clusters \
         --max-num-genes-from-each-genome 1 \
         --max-functional-homogeneity-index 0.99 \
         --min-num-genomes-gene-cluster-occurs "$NUM" \
-        --concatenate
+        --concatenate \
+        > "$WORKDIR"/"$REPLY"/Anvio_pangen/00_LOGS/MYPAN-anvi_phylogeny.log 2>&1
 
 # Generate a phylogenomic tree
 anvi-gen-phylogenomic-tree \
         -f "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/SCGs.fa \
-        -o "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/phylogenomic-tree.txt
+        -o "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/phylogenomic-tree.txt \
+        >> "$WORKDIR"/"$REPLY"/Anvio_pangen/00_LOGS/MYPAN-anvi_phylogeny.log 2>&1
 
 # We cannot include the tree as it is in the Anvi'o profile database, so we transform it into a misc-data file:
 echo -e "item_name\tdata_type\tdata_value" > "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/header.tmp
@@ -89,10 +91,12 @@ cat "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/header.tmp "$WORKDIR"/"$REPLY"/Anvio
 rm "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/*.tmp
 
 # Finally we import it into the profile databases:
-anvi-import-misc-data "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/phylogeny_order.txt \
-                      -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-PAN.db \
-                      -t layer_orders \
-                      --just-do-it
+anvi-import-misc-data \
+        "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/phylogeny_order.txt \
+        -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-PAN.db \
+        -t layer_orders \
+        --just-do-it \
+        >> "$WORKDIR"/"$REPLY"/Anvio_pangen/00_LOGS/MYPAN-anvi_phylogeny.log 2>&1
 
 # Test if there are functional differences between the genomes from each temperature regime
 mkdir -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/Functional_enrichment
@@ -103,5 +107,6 @@ do
         -g "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-GENOMES.db \
         --category-variable Temperature \
         --annotation-source "${i}" \
-        -o "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/Functional_enrichment/"${i}"-enrichment.txt 
+        -o "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/Functional_enrichment/"${i}"-enrichment.txt \
+        >> "$WORKDIR"/"$REPLY"/Anvio_pangen/00_LOGS/MYPAN-anvi_enrichment.log 2>&1
 done
