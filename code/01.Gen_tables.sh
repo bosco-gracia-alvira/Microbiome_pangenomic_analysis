@@ -33,6 +33,7 @@ rm -r "$WORKDIR"/*.tmp 2>/dev/null
  tail -n +2 "$ASSEMBLY"/Pool_591/metadata.tsv >> "$WORKDIR"/metadata.tmp
  echo "" >> "$WORKDIR"/metadata.tmp
  tail -n +2 "$ASSEMBLY"/Pool_643/metadata.tsv >> "$WORKDIR"/metadata.tmp
+ echo "" >> "$WORKDIR"/metadata.tmp
  tail -n +2 "$ASSEMBLY"/Pool_644/metadata.tsv >> "$WORKDIR"/metadata.tmp
  awk -F'\t' 'NR==1 {header=$0; next} {data[$3]=$0} END {print header; for (name in data) print data[name]}' "$WORKDIR"/metadata.tmp > "$WORKDIR"/metadata.tsv
 
