@@ -66,4 +66,4 @@ iqtree \
 mv "$TEMP/roary" "$WORKDIR/"
 mv "$TEMP/gffs" "$WORKDIR/"
 mv "$TEMP/snp-sites" "$WORKDIR/"
-#rm -r "${TEMP:?}/*"
+rm -r "${TEMP:?}/*"
