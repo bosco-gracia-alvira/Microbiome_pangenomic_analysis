@@ -19,14 +19,14 @@
         "db": ""
     },
     "anvi_run_hmms": {
-        "run": true,
+        "run": false,
         "threads": 8,
         "--also-scan-trnas": true,
         "--installed-hmm-profile": "",
         "--hmm-profile-dir": ""
     },
     "anvi_run_kegg_kofams": {
-        "run": true,
+        "run": false,
         "threads": 8,
         "--kegg-data-dir": "",
         "--hmmer-program": "",
@@ -43,12 +43,12 @@
         "--search-with": ""
     },
     "anvi_run_scg_taxonomy": {
-        "run": true,
+        "run": false,
         "threads": 8,
         "--scgs-taxonomy-data-dir": ""
     },
     "anvi_run_trna_scan": {
-        "run": true,
+        "run": false,
         "threads": 6,
         "--trna-cutoff-score": ""
     },
@@ -104,7 +104,7 @@
         "threads": ""
     },
     "anvi_run_pfams": {
-        "run": true,
+        "run": false,
         "--pfam-data-dir": "",
         "threads": 8
     },
