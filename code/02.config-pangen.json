@@ -19,7 +19,7 @@
         "db": ""
     },
     "anvi_run_hmms": {
-        "run": true,
+        "run": false,
         "threads": 5,
         "--also-scan-trnas": true,
         "--installed-hmm-profile": "",
@@ -43,7 +43,7 @@
         "--search-with": ""
     },
     "anvi_run_scg_taxonomy": {
-        "run": true,
+        "run": false,
         "threads": 6,
         "--scgs-taxonomy-data-dir": ""
     },
