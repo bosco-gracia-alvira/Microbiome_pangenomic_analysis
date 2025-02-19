@@ -14,7 +14,7 @@ library(treeio) ; packageVersion("treeio")
 library(pvclust) ; packageVersion("pvclust")
 library(patchwork) ; packageVersion("patchwork")
 library(readr) ; packageVersion("readr")
-library(phyloseq) ; packageVersion("phyloseq")
+#library(phyloseq) ; packageVersion("phyloseq")
 library(vegan) ; packageVersion("vegan")
 library(dplyr) ; packageVersion("dplyr")
 library(RColorBrewer) ; packageVersion("RColorBrewer")
@@ -125,7 +125,6 @@ text(pvclust_result, col=c(au=2, bp="transparent", edge="transparent"), print.nu
 
 # Close the device
 dev.off()
-
 
 ```
 
