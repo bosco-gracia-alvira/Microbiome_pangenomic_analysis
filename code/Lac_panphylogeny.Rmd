@@ -7,20 +7,28 @@ output: html_document
 
 ```{r Load libraries}
 
-library(tidyverse) ; packageVersion("tidyverse")
-library(ggtree) ; packageVersion("ggtree")
-library(ggdendro) ; packageVersion("ggdendro")
-library(treeio) ; packageVersion("treeio")
-library(patchwork) ; packageVersion("patchwork")
-library(readr) ; packageVersion("readr")
-library(phytools) ; packageVersion("phytools")
-library(pvclust) ; packageVersion("pvclust")
-library(vegan) ; packageVersion("vegan")
-library(dplyr) ; packageVersion("dplyr")
-library(RColorBrewer) ; packageVersion("RColorBrewer")
-library(dendextend) ; packageVersion("dendextend")
-library(ape) ; packageVersion("ape")
+# Standard table management
 library(data.table) ; packageVersion("data.table")
+library(tidyverse) ; packageVersion("tidyverse")
+library(readr) ; packageVersion("readr")
+library(dplyr) ; packageVersion("dplyr")
+
+# Hierarchical clustering 
+library(pvclust) ; packageVersion("pvclust")
+
+# Phylogenetic tree visualisation
+library(treeio) ; packageVersion("treeio")
+library(ggtree) ; packageVersion("ggtree")
+
+# Advanced dendrograms visualisation
+library(dendextend) ; packageVersion("dendextend")
+
+#library(phytools) ; packageVersion("phytools")
+#library(ggdendro) ; packageVersion("ggdendro")
+#library(patchwork) ; packageVersion("patchwork")
+#library(ape) ; packageVersion("ape")
+#library(vegan) ; packageVersion("vegan")
+#library(RColorBrewer) ; packageVersion("RColorBrewer")
 
 ```
 
@@ -34,7 +42,7 @@ visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Mi
 ```
 
 ```{r Phylogenetic tree}
-
+  
 # Load the metadata file and set the Strains as key
 metadata <- fread(metadata_path)
 row.names(metadata) <- metadata$Strain
@@ -56,31 +64,25 @@ new_root_node <- which(tree$tip.label == "NIZO2776")
 # Re-root the tree to the midpoint between the outgroup and the rest of the tree
 tree <- midpoint.root(tree, node.labels=new_root_node)
 
-# Convert the tree to a tibble
-tree_merged <- as_tibble(tree)
-
-# Merge the tree data with metadata
-tree_merged <- tree_merged %>%
-    left_join(metadata, by = c("label" = "Strain"))
-
-# Build the tree and save it in a figure
-tree_plot <- ggtree(tree, size = 0.3) %<+% tree_merged + 
-                geom_tippoint(aes(color = Source), size = 0.5) +
-                geom_tiplab(aes(color = Source), size = 2) +
-                scale_color_manual(values = setNames(metadata$Colour, metadata$Source)) +
-                theme_tree2() +
-                scale_y_continuous(expand = c(0.05, 0.20))  # Adjust the expand parameter as needed
+# Build the tree plot with bootstrap values and metadata
+tree_plot <- ggtree(tree, size = 0.3) %<+% metadata + 
+                  geom_tippoint(aes(color = Source), size = 0.5) +
+                  geom_tiplab(aes(color = Source), size = 2, align = TRUE) +
+                  geom_text2(aes(subset = !isTip, label = label), hjust = 1.2, vjust = -0.5, size = 2) +
+                  scale_color_manual(values = setNames(metadata$Colour, metadata$Source)) +
+                  theme_tree2() +
+                  scale_y_continuous(expand = c(0.05, 0.20))  # Adjust the expand parameter as needed
 
 tree_plot
 
-ggsave(filename = "Lac_phylogeny.png", plot = tree_plot, path = visuals_path, width = 20, height = 6, dpi = 300)
+ggsave(filename = "Lac_phylogeny.png", plot = tree_plot, path = visuals_path, width = 20, height = 10, dpi = 300)
 
 ```
 
 
 ```{r Functional tree}
 
-# Select our isolates, except for the representatives
+# Select our isolates, except for the representatives from each strain
 hot <- metadata %>% filter(Source == "HOT") %>% select(Strain) %>% filter(Strain != "S239")
 base <- metadata %>% filter(Source == "BASE") %>% select(Strain) %>% filter(Strain != "B89")
 cold <- metadata %>% filter(Source %in% c("COLD", "COLD-CONSTANT")) %>% select(Strain) %>% filter(Strain != "S103")
@@ -90,6 +92,45 @@ remove_cols <- c(hot$Strain, cold$Strain, base$Strain)
 pan <- read.table(pan_path, header = TRUE, check.names = FALSE)
 row.names(pan) <- pan$Gene
 pan <- pan %>% select(-Gene) %>% select(-one_of(remove_cols))
+
+# Transpose the data so that rows are genomes and columns are genes
+tpan <- as.data.frame(t(pan))
+tpan$Strain <- row.names(tpan)
+tpan <- tpan %>%
+  semi_join(metadata, by = "Strain")
+tpan <- tpan %>% select(-Strain)
+
+# Calculate the binary distances between the samples
+dist_pan <- dist(tpan, method = "binary")
+
+# Perform hierarchical clustering with bootstrap on the distance matrix using pvclust
+set.seed(999)
+pvclust_result <- pvclust(as.matrix(dist_pan), parallel = as.integer(10), method.hclust = "ward.D", nboot = 1000)
+
+# Extract dendrogram data and bootstrap values
+dendro_pan <- as.dendrogram(pvclust_result)
+bootstrap_values <- pvclust_result[["edges"]][["au"]][order.dendrogram(dendro_pan)]
+
+#Colour the labels based on the source of isolation, and bootstraps based on significance
+label_colors <- metadata$Colour[match(labels(dendro_pan), metadata$Strain)]
+node_colors <- ifelse(bootstrap_values > 0.90, "red", "black")
+node_sizes <- ifelse(bootstrap_values > 0.90, 0.5, 0.01)
+
+# Modify the dendrogram to include the coloured labels
+dendro_pan_2 <- dendro_pan %>%
+  #assign_values_to_nodes_nodePar(19, nodePar="pch") %>%
+  #set("nodes_cex", node_sizes) %>%
+  #assign_values_to_nodes_nodePar(node_colors, nodePar="col") %>%
+  set("labels_colors", label_colors)
+
+dendro_pan_2 %>% plot()
+
+png(filename = paste0(visuals_path,"/Lac_dendrogram.png"), width = 4000, height = 2000, res = 300)
+dendro_pan_2 %>% plot()
+pvclust_result %>% text(col=c(au=2, bp="transparent", edge="transparent"), print.num=FALSE, float=0.01, cex=0.5)
+dev.off()
+
+####################
 
 # Transpose the data so that rows are genomes and columns are genes
 tpan <- as.data.frame(t(pan))
@@ -116,7 +157,7 @@ ggdendro_pan <- as.ggdend(dendro_pan)
 # Create a ggplot object for the dendrogram
 dendro_plot <- ggplot() +
   geom_segment(data = ggdendro_pan$segments, aes(x = x, y = y, xend = xend, yend = yend)) +
-  geom_point(data = ggdendro_pan$labels, aes(x = x, y = y, color = dendro_cols), size = 2) +
+  geom_point(data = ggdendro_pan$labels, aes(x = x, y = y), size = 2) +
   #geom_text(data = ggdendro_pan$labels, aes(x = x, y = y, label = label, color = dendro_cols), angle = 90, hjust = 1, size = 3) +
   scale_color_identity() +
   theme_classic() +
