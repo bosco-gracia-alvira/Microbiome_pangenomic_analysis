@@ -25,7 +25,7 @@ fi
 # In this environment I have the packages to do phylogenies (parsnp, fasttree, harvesttools...)
 conda activate phylogeny
 
-# Create the parsnp folder
+# Create the folders that we need
 mkdir -p "$TEMP"/{roary,gffs,snp-sites}
 cp -r "$WORKDIR/genomes" "$TEMP"
 
