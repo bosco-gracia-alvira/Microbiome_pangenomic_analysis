@@ -19,11 +19,12 @@ library(pvclust) ; packageVersion("pvclust")
 # Phylogenetic tree visualisation
 library(treeio) ; packageVersion("treeio")
 library(ggtree) ; packageVersion("ggtree")
+library(phytools) ; packageVersion("phytools")
 
 # Advanced dendrograms visualisation
 library(dendextend) ; packageVersion("dendextend")
 
-#library(phytools) ; packageVersion("phytools")
+#
 #library(ggdendro) ; packageVersion("ggdendro")
 #library(patchwork) ; packageVersion("patchwork")
 #library(ape) ; packageVersion("ape")
