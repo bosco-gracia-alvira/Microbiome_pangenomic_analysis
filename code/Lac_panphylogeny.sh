@@ -37,7 +37,7 @@ do
     base=$(basename "$i" .fa)
     
     # Run Prokka to generate the GFF file
-    prokka --outdir "$TEMP/gffs/$base" --prefix "$base" --notrna --norrna "$i"
+    prokka --outdir "$TEMP/gffs/$base" --prefix "$base" "$i"
     mv "$TEMP/gffs/$base/$base.gff" "$TEMP/gffs/"
     rm -r "$TEMP/gffs/$base"
 done
