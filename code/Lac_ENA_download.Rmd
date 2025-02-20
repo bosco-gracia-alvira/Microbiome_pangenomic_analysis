@@ -1,0 +1,57 @@
+---
+title: "ENA_download"
+author: "Bosco Gracia Alvira"
+date: "2025-02-20"
+output: html_document
+---
+
+```{r Load libraries}
+
+# Standard table management
+library(data.table) ; packageVersion("data.table")
+library(tidyverse) ; packageVersion("tidyverse")
+library(readr) ; packageVersion("readr")
+library(dplyr) ; packageVersion("dplyr")
+
+# Handle HTTP requests
+library(httr) ; packageVersion("httr")
+
+```
+
+```{r Set paths}
+
+metadata_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/metadata.tsv"
+isolates_dir <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Isolates/"
+genomes_dir <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Phylogeny/genomes/"
+
+```
+
+
+```{r Download the GCAs}
+
+# Check if genomes_dir exists
+if (!dir.exists(genomes_dir)) {
+  dir.create(genomes_dir)
+}
+
+# Read the metadata table
+metadata <- fread(metadata_path)
+
+# Extract the GCA accessions and strain names
+accessions <- metadata %>%
+  select(Strain, ENA_accession) %>%
+  filter(!is.na(ENA_accession))
+
+for (i in 1:nrow(accessions)) {
+  if (startsWith(accessions$ENA_accession[i], "GCA_")) {
+    url <- paste0("https://www.ebi.ac.uk/ena/browser/api/fasta/",accessions$ENA_accession[i],"?gzip=false")
+    destfile <- paste0(genomes_dir,accessions$Strain[i],".fa")
+    download.file(url, destfile)
+  } else {
+    path <- paste0(isolates_dir,accessions$ENA_accession[i])
+    destfile <- paste0(genomes_dir,accessions$Strain[i],".fa")
+    file.copy(path, destfile)
+  }
+}
+
+```
