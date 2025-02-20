@@ -42,11 +42,14 @@ do
     rm -r "$TEMP/gffs/$base"
 done
 
-# Run roary to build a pangenome
+# Run roary to build a pangenome and move the results out of the _* folder
 roary   -e -n \
         -p 16 \
         -f "$TEMP"/roary/ \
         "$TEMP"/gffs/*.gff
+
+mv "$TEMP"/roary/_*/* "$TEMP"/roary/
+rm -r "$TEMP"/roary/_*
 
 # Run snp-sites to extract only the SNPs
 snp-sites \
