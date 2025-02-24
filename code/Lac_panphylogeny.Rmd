@@ -84,15 +84,15 @@ ggsave(filename = "Lac_phylogeny.png", plot = tree_plot, path = visuals_path, wi
 ```{r Functional tree}
 
 # Select our isolates, except for the representatives from each strain
-hot <- metadata %>% filter(Source == "HOT") %>% select(Strain) %>% filter(Strain != "S239")
-base <- metadata %>% filter(Source == "BASE") %>% select(Strain) %>% filter(Strain != "B89")
-cold <- metadata %>% filter(Source %in% c("COLD", "COLD-CONSTANT")) %>% select(Strain) %>% filter(Strain != "S103")
-remove_cols <- c(hot$Strain, cold$Strain, base$Strain)
+#hot <- metadata %>% filter(Source == "HOT") %>% select(Strain) %>% filter(Strain != "S239")
+#base <- metadata %>% filter(Source == "BASE") %>% select(Strain) %>% filter(Strain != "B89")
+#cold <- metadata %>% filter(Source %in% c("COLD", "COLD-CONSTANT")) %>% select(Strain) %>% filter(Strain != "S103")
+#remove_cols <- c(hot$Strain, cold$Strain, base$Strain)
 
 # Load the genes presence-absence matrix and set the gene names as row names
 pan <- read.table(pan_path, header = TRUE, check.names = FALSE)
 row.names(pan) <- pan$Gene
-pan <- pan %>% select(-Gene) %>% select(-one_of(remove_cols))
+pan <- pan %>% select(-Gene) #%>% select(-one_of(remove_cols))
 
 # Transpose the data so that rows are genomes and columns are genes
 tpan <- as.data.frame(t(pan))
@@ -122,112 +122,15 @@ dendro_pan_2 <- dendro_pan %>%
   #assign_values_to_nodes_nodePar(19, nodePar="pch") %>%
   #set("nodes_cex", node_sizes) %>%
   #assign_values_to_nodes_nodePar(node_colors, nodePar="col") %>%
+  set("labels_cex", 0.5) %>% 
   set("labels_colors", label_colors)
 
 dendro_pan_2 %>% plot()
 
 png(filename = paste0(visuals_path,"/Lac_dendrogram.png"), width = 4000, height = 2000, res = 300)
 dendro_pan_2 %>% plot()
-pvclust_result %>% text(col=c(au=2, bp="transparent", edge="transparent"), print.num=FALSE, float=0.01, cex=0.5)
+pvclust_result %>% text(col=c(au=2, bp="transparent", edge="transparent"), print.num=FALSE, float=0.01, cex=0.3)
 dev.off()
-
-####################
-
-# Transpose the data so that rows are genomes and columns are genes
-tpan <- as.data.frame(t(pan))
-
-# Perform hierarchical clustering of the binary distances between genomes
-dist_pan <- dist(tpan, method = "binary")
-hclust_pan <- hclust(dist_pan, method = "ward.D")
-
-# Convert hclust object to dendrogram
-dendro_pan <- as.dendrogram(hclust_pan)
-
-# Make a metadata file in which the rows are sorted as in the dendrogram
-# This will be needed to match the colours to the correct labels
-metadata_pan <- metadata[J(labels(dendro_pan))]
-
-# Extract the colors from the reordered metadata
-# Assign colors to the dendrogram labels
-dendro_cols <- as.character(metadata_pan$Colour)
-labels_colors(dendro_pan) <- dendro_cols
-
-# Convert the dendrogram to a ggdend object
-ggdendro_pan <- as.ggdend(dendro_pan)
-
-# Create a ggplot object for the dendrogram
-dendro_plot <- ggplot() +
-  geom_segment(data = ggdendro_pan$segments, aes(x = x, y = y, xend = xend, yend = yend)) +
-  geom_point(data = ggdendro_pan$labels, aes(x = x, y = y), size = 2) +
-  #geom_text(data = ggdendro_pan$labels, aes(x = x, y = y, label = label, color = dendro_cols), angle = 90, hjust = 1, size = 3) +
-  scale_color_identity() +
-  theme_classic() +
-  coord_flip() +
-  #scale_y_reverse() +
-  scale_x_reverse() +
-  labs(title = "Functional clustering of the isolates", y = "Binary distance", x = "Isolate")
-
-dendro_plot
-
-# Save the plot using ggsave
-ggsave(filename = "Lac_dendrogram.png", plot = dendro_plot, path = visuals_path, width = 20, height = 10, dpi = 300)
-
-```
-
-
-
-```{r Functional ordination}
-# Hierarchical clustering is okay, but I prefer PCAs :)
-# We can use the same presence/absence table
-
-# Calculate PCA of the presence/absence pattern
-pca_pan <- prcomp(tpan, retx = T)
-
-# Pick the coordinates from the PCA and save it in a new data frame
-# Include the strain name
-pca_data <- as.data.frame(pca_pan$x)
-pca_data$Strain <- rownames(pca_data)
-
-# How much variance is explained by each PC? 
-# This is the square of the standard deviations divided by the total variance.
-sdev <- pca_pan$sdev
-variance_explained <- sdev^2 / sum(sdev^2)
-percentage_variance_explained <- variance_explained * 100
-
-# We merge each genome's coordinates and metadata
-# We set a vector with the colours that we want for each isolation source
-pca_merged <- merge(pca_data, metadata, by="Strain")
-color_vector <- setNames(pca_merged$Colour, pca_merged$Source)
-
-# We plot PC1vsPC2 and PC4vsPC5, we are not interested in PC3, plot it if you want though
-pca12 <- ggplot(pca_merged, aes(x = PC1, y = PC2, colour = Source)) +
-              geom_point(size = 3, alpha=0.5) +
-              #geom_text(aes(label = genome), color = "black") +
-              theme_minimal() +
-              scale_colour_manual(values = color_vector) +
-              labs(title = "Isolates PCA based on genes presence/absence",
-                   x = paste0("PC1 (", round(percentage_variance_explained[1], 2), "% variance)"),
-                   y = paste0("PC2 (", round(percentage_variance_explained[2], 2), "% variance)"),
-                   color = "Source of isolation")
-
-pca12
-
-ggsave(filename = "Lac_PCA12.png", plot = pca12, path = visuals_path, width = 10, height = 6, dpi = 300)
-
-
-pca45 <- ggplot(pca_merged, aes(x = PC4, y = PC5, colour = Source)) +
-              geom_point(size = 3, alpha=0.5) +
-              #geom_text(aes(label = genome), color = "black") +
-              theme_minimal() +
-              scale_colour_manual(values = color_vector) +
-              labs(title = "Isolates PCA based on genes presence/absence",
-                   x = paste0("PC4 (", round(percentage_variance_explained[4], 2), "% variance)"),
-                   y = paste0("PC5 (", round(percentage_variance_explained[5], 2), "% variance)"),
-                   color = "Source of isolation")
-
-pca45
-
-ggsave(filename = "Lac_PCA45.png", plot = pca45, path = visuals_path, width = 10, height = 6, dpi = 300)
 
 ```
 
