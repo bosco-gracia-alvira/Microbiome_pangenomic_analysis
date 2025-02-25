@@ -1,0 +1,73 @@
+---
+title: "Lac_strains_mutations"
+author: "Bosco Gracia Alvira"
+date: "2025-02-24"
+output: html_document
+---
+
+```{r Load libraries}
+
+# Standard table management
+library(data.table) ; packageVersion("data.table")
+library(tidyverse) ; packageVersion("tidyverse")
+library(readr) ; packageVersion("readr")
+library(dplyr) ; packageVersion("dplyr")
+
+# Plot graphs
+library(ggplot2)
+library(igraph)
+library(ggraph)
+library(tidygraph)
+
+```
+
+
+```{r Set paths}
+
+snps_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/dist-sites/pairwise_snps.tsv"
+metadata_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/metadata.tsv"
+visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
+
+```
+
+```{r }
+
+metadata <- fread(metadata_path)
+row.names(metadata) <- metadata$Strain
+setkey(metadata, Strain)
+
+snps <- fread(snps_path)
+colnames(snps) <- c("Genome1","Genome2","SNPs")
+
+snps <- snps %>% filter(SNPs < 1000)
+
+# Create a graph object from the molten table
+graph <- graph_from_data_frame(d = snps, directed = FALSE)
+
+# Add metadata to the graph nodes
+V(graph)$label <- V(graph)$name
+
+E(graph)$weight <- snps$SNPs
+
+desired_nodes <- metadata$Strain  # Replace with your desired nodes
+subset_graph <- induced_subgraph(graph, vids = V(graph)$name %in% desired_nodes)
+V(subset_graph)$metadata <- metadata[match(V(subset_graph)$name, metadata$Strain), ]
+
+ggraph(subset_graph, layout = "stress") + 
+  geom_edge_link(aes(width = 0.01), edge_colour = "grey") + 
+  geom_node_point(size = 5, colour = "blue") + 
+  geom_node_text(aes(label = label), vjust = 1.5, hjust = 1.5) + 
+  theme_void()
+
+# Visualize the graph using ggraph
+ggraph(subset_graph, layout = "fr") + 
+  geom_edge_link(aes(width = SNPs), edge_colour = "grey") + 
+  geom_node_point(size = 5, colour = "blue") + 
+  geom_node_text(aes(label = label), vjust = 1.5, hjust = 1.5) + 
+  theme_void()
+
+
+```
+
+
+
