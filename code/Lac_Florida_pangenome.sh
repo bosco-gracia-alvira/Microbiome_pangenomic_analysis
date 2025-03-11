@@ -41,7 +41,7 @@ for i in "$TEMP"/genomes/*.fa
 do
     # Get the base name of the file (without extension)
     base=$(basename "$i" .fa)
-    
+
     # Run Prokka to generate the GFF file
     prokka --outdir "$TEMP/gffs/$base" --prefix "$base" "$i"
     mv "$TEMP/gffs/$base/$base.gff" "$TEMP/gffs/"
@@ -58,7 +58,8 @@ mv "$TEMP"/roary/_*/* "$TEMP"/roary/
 rm -r "$TEMP"/roary/_*
 
 # We run snp-dists to calculate the pairwise SNPs in the core genome
-snp-dists -m "$TEMP"/roary/core_gene_alignment.aln > "$TEMP"/snp-dists/pairwise_snps.tsv
+snp-dists -m "$TEMP"/roary/core_gene_alignment.aln > "$TEMP"/snp-dists/pairwise_snps_long.tsv
+snp-dists "$TEMP"/roary/core_gene_alignment.aln > "$TEMP"/snp-dists/pairwise_snps.tsv
 
 # Run snp-sites to extract only the SNPs
 snp-sites \

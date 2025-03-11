@@ -58,7 +58,9 @@ mv "$TEMP"/roary/_*/* "$TEMP"/roary/
 rm -r "$TEMP"/roary/_*
 
 # We run snp-dists to calculate the pairwise SNPs in the core genome
-snp-dists -m "$TEMP"/roary/core_gene_alignment.aln > "$TEMP"/snp-dists/pairwise_snps.tsv
+snp-dists -m "$TEMP"/roary/core_gene_alignment.aln > "$TEMP"/snp-dists/pairwise_snps_long.tsv
+snp-dists "$TEMP"/roary/core_gene_alignment.aln > "$TEMP"/snp-dists/pairwise_snps.tsv
+bedtools intersect -v -abam input.bam -b low_mappability.bed > filtered.bam
 
 # Run snp-sites to extract only the SNPs
 snp-sites \
