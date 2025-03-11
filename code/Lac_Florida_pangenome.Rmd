@@ -1,5 +1,5 @@
 ---
-title: "Lac_strains_pangenome"
+title: "Lac_Florida_pangenome"
 author: "Bosco Gracia Alvira"
 date: "2025-02-24"
 output: html_document
@@ -20,19 +20,19 @@ library(ggtree) ; packageVersion("ggtree")
 library(phytools) ; packageVersion("phytools")
 
 # Plot the pangenome graphs
-library(pheatmap)
-library(ggplot2)
-library(tidygraph)
+library(pheatmap) ; packageVersion("pheatmap")
+library(ggplot2) ; packageVersion("ggplot2")
+library(tidygraph) ; packageVersion("tidygraph")
 
 ```
 
 
 ```{r Set paths}
 
-metadata_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/metadata.tsv"
-tree_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/snp-sites/Lpla.phylip.treefile"
-pan_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/roary/gene_presence_absence.Rtab"
-ANI_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/pyANI/ANIb_percentage_identity.tab"
+metadata_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_Florida/metadata.tsv"
+tree_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_Florida/snp-sites/Lpla.phylip.treefile"
+pan_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_Florida/roary/gene_presence_absence.Rtab"
+ANI_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_Florida/pyANI/ANIb_percentage_identity.tab"
 visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
 
 ```
@@ -74,6 +74,7 @@ genome_order <- tree_plot$data %>%
 
 # Load the genes presence-absence matrix and set the gene names as row names
 pan <- read.table(pan_path, header = TRUE, check.names = FALSE) 
+
 pan_matrix <- as.matrix(pan[,-1])
 rownames(pan_matrix) <- pan$Gene
 
@@ -81,9 +82,9 @@ rownames(pan_matrix) <- pan$Gene
 gene_dist <- dist(pan_matrix)
 gene_clust <- hclust(gene_dist)
 
-# Reorder the genes based on the clustering results and the rows based on phylogeny
+# Reorder the genes based on the clustering results
 gene_order <- gene_clust$order
-matrix_ordered <- pan_matrix[gene_order,]
+matrix_ordered <- pan_matrix[gene_order, ]
 
 pan_long <- as.data.frame(matrix_ordered) %>% 
            rownames_to_column(var = "Gene") %>%
@@ -99,8 +100,6 @@ pan_plot <- ggplot(pan_long, aes(x = Genome, y = Gene, fill = Presence)) +
                       axis.text.y = element_text(angle = 0, hjust = 1)) +
                   labs(title = "Gene Presence/Absence Matrix", x = "Genome", y = "Gene") +
                   coord_flip()
-
-pan_plot
 
 ```
 
@@ -174,9 +173,10 @@ combined_tree_pan_ANI_plot <- combined_tree_pan_plot +
 
 combined_tree_pan_ANI_plot
 
-ggsave(filename = "Lac_strains_combined.png", plot = combined_tree_pan_ANI_plot, path = visuals_path, width = 25, height = 10, dpi = 300)
+ggsave(filename = "Lac_Florida_combined.png", plot = combined_tree_pan_ANI_plot, path = visuals_path, width = 25, height = 10, dpi = 300)
 
 ```
+
 
 ```{r Fisher test}
 
@@ -189,7 +189,7 @@ metadata_fisher <- metadata %>%
                                  Generation_random = sample(Generation))
 
 # List of parameters to test
-parameters <- c("Temperature", "Population", "Generation")
+parameters <- c("Temperature", "Generation")
 
 # Initialize a list to store the results
 results <- list()
