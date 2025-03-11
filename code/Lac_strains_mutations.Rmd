@@ -13,22 +13,197 @@ library(tidyverse) ; packageVersion("tidyverse")
 library(readr) ; packageVersion("readr")
 library(dplyr) ; packageVersion("dplyr")
 
+# Ordination of the pairwise distances
+library(factoextra)
+
 # Plot graphs
-library(ggplot2)
-library(igraph)
-library(ggraph)
-library(tidygraph)
+library(ggplot2) ; packageVersion("ggplot2")
+library(igraph) ; packageVersion("igraph")
+library(ggraph) ; packageVersion("ggraph")
+library(tidygraph) ; packageVersion("tidygraph")
 
 ```
 
 
 ```{r Set paths}
 
-snps_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/dist-sites/pairwise_snps.tsv"
+snps_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/snp-dists/pairwise_snps.tsv"
+
+snps_long_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/snp-dists/pairwise_snps_long.tsv"
+
 metadata_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/metadata.tsv"
+
 visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
 
 ```
+
+```{r Load the data and subset}
+
+# Load the metadata with info from each isolate
+metadata <- fread(metadata_path) %>% 
+                        mutate(GenPop = paste0(Generation,"_",Population),
+                               GenPop = gsub(" ", "", GenPop))
+
+row.names(metadata) <- metadata$Strain
+setkey(metadata, Strain)
+
+# Load the snps files
+snps <- fread(snps_path) %>% column_to_rownames(var = colnames(.)[1])
+snps_long <- fread(snps_long_path) %>% setNames(c("Genomes1","Genomes2","SNPs"))
+
+# Subset the data to within-strain isolates
+isolates_S239 <- metadata %>%
+  filter(Genotype == "S239") %>%
+  pull(Strain)
+
+snps_S239 <- snps %>%
+  filter(row.names(snps) %in% isolates_S239) %>%
+  select(all_of(isolates_S239))
+
+snps_S239_long <- snps_S239 %>% 
+                      rownames_to_column(var = "Genome1") %>% 
+                      pivot_longer(cols = -Genome1, names_to = "Genome2", values_to = "SNPs") %>% 
+                      left_join(metadata, by = c("Genome1" = "Strain")) %>%
+                      dplyr::rename(Generation1 = Generation) %>% 
+                      left_join(metadata, by = c("Genome2" = "Strain")) %>%
+                      dplyr::rename(Generation2 = Generation) %>% 
+                      mutate(Same_Generation = ifelse(Generation1 == Generation2, "Yes", "No"))
+
+isolates_S103 <- metadata %>%
+  filter(Genotype == "S103") %>%
+  pull(Strain)
+
+snps_S103 <- snps %>%
+  filter(row.names(snps) %in% isolates_S103) %>%
+  select(all_of(isolates_S103))
+
+snps_S103_long <- snps_S103 %>% 
+                      rownames_to_column(var = "Genome1") %>% 
+                      pivot_longer(cols = -Genome1, names_to = "Genome2", values_to = "SNPs") %>% 
+                      left_join(metadata, by = c("Genome1" = "Strain")) %>%
+                      dplyr::rename(Generation1 = Generation) %>% 
+                      left_join(metadata, by = c("Genome2" = "Strain")) %>%
+                      dplyr::rename(Generation2 = Generation) %>% 
+                      mutate(Same_Generation = ifelse(Generation1 == Generation2, "Yes", "No"))
+
+```
+
+```{r Ordination of the isolates by their SNPs distances}
+
+# Define the colors for the generations
+list_colours <- list(
+  GenPop = c("F1_Florida" = "grey",
+             "F57_SouthAfrica" = "green",
+             "F89_Florida" = "lightblue",
+             "F109_Florida" = "blue",
+             "F175_Florida" = "red",
+             "F202_Portugal" = "orange",
+             "F262_Florida" = "darkred")
+)
+
+df_colours <- list_colours$GenPop
+
+# Convert the symmetric table to a distance matrix
+dist_S239 <- as.dist(snps_S239)
+
+# Perform PCA on the distance matrix
+pca_S239 <- prcomp(as.matrix(dist_S239), scale. = TRUE)
+pca_S239_merged <- as.data.frame(pca_S239$x) %>% 
+                                rownames_to_column(var = "Strain") %>% 
+                                left_join(metadata, by = join_by(Strain))
+
+pca_S239_plot <- ggplot(pca_S239_merged, aes(x=PC1,y=PC2, colour=GenPop)) + 
+                    geom_point(aes(shape=Population)) +
+                    labs(title = "Ordination of S239 isolates") +
+                    scale_colour_manual(values = df_colours) +
+                    theme_minimal()
+pca_S239_plot
+
+ggsave(filename = "Lac_mutations_PCA_S239.png", plot = pca_S239_plot, path = visuals_path, width = 6, height = 4, dpi = 300)
+
+# Convert the symmetric table to a distance matrix
+dist_S103 <- as.dist(snps_S103)
+
+# Perform PCA on the distance matrix
+pca_S103 <- prcomp(as.matrix(dist_S103), scale. = TRUE)
+pca_S103_merged <- as.data.frame(pca_S103$x) %>% 
+                                rownames_to_column(var = "Strain") %>% 
+                                left_join(metadata, by = join_by(Strain))
+
+pca_S103_plot <- ggplot(pca_S103_merged, aes(x=PC1,y=PC2, colour=GenPop)) + 
+                    geom_point(aes(shape=Population)) +
+                    labs(title = "Ordination of S103 isolates") +
+                    scale_colour_manual(values = df_colours) +
+                    theme_minimal()
+pca_S103_plot
+
+ggsave(filename = "Lac_mutations_PCA_S103.png", plot = pca_S103_plot, path = visuals_path, width = 6, height = 4, dpi = 300)
+
+```
+
+
+```{r Heat maps}
+# S239
+
+# Create the annotation data frame
+annotation_S239 <- metadata %>% 
+                    filter (Genotype == "S239") %>% 
+                    select(c(Strain,GenPop))
+
+rownames(annotation_S239) <- annotation_S239$Strain
+annotation_S239$Strain <- NULL
+
+matrix_S239 <- as.matrix(snps_S239)
+nums_S239 <- apply(matrix_S239, c(1, 2), function(x) sprintf("%d", x))
+
+# Plot the heatmap using pheatmap
+png(paste0(visuals_path,"/Lac_mutations_heat_S239.png"), width = 4000, height = 3000, res = 300)
+pheatmap(matrix_S239, 
+         cluster_rows = TRUE, 
+         cluster_cols = TRUE, 
+         display_numbers = nums_S239, 
+         color = colorRampPalette(c("yellow", "purple"))(100),
+         main = "SNPs heatmap of the strain S239",
+         annotation_col = annotation_S239,
+         annotation_row = annotation_S239,
+         annotation_colors = list_colours)
+dev.off
+
+# S103
+
+# Create the annotation data frame
+annotation_S103 <- metadata %>% 
+                    filter (Genotype == "S103") %>% 
+                    select(c(Strain,GenPop))
+
+rownames(annotation_S103) <- annotation_S103$Strain
+annotation_S103$Strain <- NULL
+
+matrix_S103 <- as.matrix(snps_S103)
+nums_S103 <- apply(matrix_S103, c(1, 2), function(x) sprintf("%d", x))
+
+# Plot the heatmap using pheatmap
+png(paste0(visuals_path,"/Lac_mutations_heat_S103.png"), width = 4000, height = 3000, res = 300)
+pheatmap(matrix_S103,
+         cluster_rows = TRUE,
+         cluster_cols = TRUE,
+         display_numbers = nums_S103, 
+         color = colorRampPalette(c("yellow", "purple"))(100),
+         main = "SNPs heatmap of the strain S103",
+         annotation_col = annotation_S103,
+         annotation_row = annotation_S103,
+         annotation_colors = list_colours)
+dev.off
+
+```
+
+
+
+
+
+
+
+
 
 ```{r }
 
