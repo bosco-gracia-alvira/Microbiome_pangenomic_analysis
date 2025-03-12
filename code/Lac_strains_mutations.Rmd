@@ -69,6 +69,18 @@ snps_S239_long <- snps_S239 %>%
                       dplyr::rename(Generation2 = Generation) %>% 
                       mutate(Same_Generation = ifelse(Generation1 == Generation2, "Yes", "No"))
 
+density_S239 <- ggplot(snps_S239_long, aes(x = SNPs)) +
+                  geom_density(fill = "red", alpha = 0.5) +
+                  labs(title = "Density Plot (hot)", x = "Value", y = "Density") +
+                  theme_minimal()
+
+box_S239 <- ggplot(snps_S239_long, aes(x = Same_Generation, y = SNPs)) +
+                  geom_boxplot(colour ="red") +
+                  labs(title = "Pairwise SNPs between isolates (hot)", x = "Same generation comparisons", y = "Pairwise SNPs") +
+                  theme_minimal()
+density_S239
+box_S239
+
 isolates_S103 <- metadata %>%
   filter(Genotype == "S103") %>%
   pull(Strain)
@@ -85,6 +97,18 @@ snps_S103_long <- snps_S103 %>%
                       left_join(metadata, by = c("Genome2" = "Strain")) %>%
                       dplyr::rename(Generation2 = Generation) %>% 
                       mutate(Same_Generation = ifelse(Generation1 == Generation2, "Yes", "No"))
+
+density_S103 <- ggplot(snps_S103_long, aes(x = SNPs)) +
+                  geom_density(fill = "blue", alpha = 0.5) +
+                  labs(title = "Density Plot (cold)", x = "Value", y = "Density") +
+                  theme_minimal()
+
+box_S103 <- ggplot(snps_S103_long, aes(x = Same_Generation, y = SNPs)) +
+                  geom_boxplot(colour ="blue") +
+                  labs(title = "Pairwise SNPs between isolates (cold)", x = "Same generation comparisons", y = "Pairwise SNPs") +
+                  theme_minimal()
+density_S103
+box_S103
 
 ```
 
@@ -197,49 +221,10 @@ dev.off
 
 ```
 
+```{r}
 
 
 
-
-
-
-
-
-```{r }
-
-metadata <- fread(metadata_path)
-row.names(metadata) <- metadata$Strain
-setkey(metadata, Strain)
-
-snps <- fread(snps_path)
-colnames(snps) <- c("Genome1","Genome2","SNPs")
-
-snps <- snps %>% filter(SNPs < 1000)
-
-# Create a graph object from the molten table
-graph <- graph_from_data_frame(d = snps, directed = FALSE)
-
-# Add metadata to the graph nodes
-V(graph)$label <- V(graph)$name
-
-E(graph)$weight <- snps$SNPs
-
-desired_nodes <- metadata$Strain  # Replace with your desired nodes
-subset_graph <- induced_subgraph(graph, vids = V(graph)$name %in% desired_nodes)
-V(subset_graph)$metadata <- metadata[match(V(subset_graph)$name, metadata$Strain), ]
-
-ggraph(subset_graph, layout = "stress") + 
-  geom_edge_link(aes(width = 0.01), edge_colour = "grey") + 
-  geom_node_point(size = 5, colour = "blue") + 
-  geom_node_text(aes(label = label), vjust = 1.5, hjust = 1.5) + 
-  theme_void()
-
-# Visualize the graph using ggraph
-ggraph(subset_graph, layout = "fr") + 
-  geom_edge_link(aes(width = SNPs), edge_colour = "grey") + 
-  geom_node_point(size = 5, colour = "blue") + 
-  geom_node_text(aes(label = label), vjust = 1.5, hjust = 1.5) + 
-  theme_void()
 
 
 ```
