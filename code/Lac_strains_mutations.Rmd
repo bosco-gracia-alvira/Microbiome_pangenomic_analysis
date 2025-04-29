@@ -12,15 +12,20 @@ library(data.table) ; packageVersion("data.table")
 library(tidyverse) ; packageVersion("tidyverse")
 library(readr) ; packageVersion("readr")
 library(dplyr) ; packageVersion("dplyr")
+library(reshape2) ; packageVersion("reshape2")
+
+# Load genomic data
+library(Biostrings) ; packageVersion("Biostrings")
 
 # Ordination of the pairwise distances
-library(factoextra)
+library(factoextra) ; packageVersion("factoextra")
 
 # Plot graphs
 library(ggplot2) ; packageVersion("ggplot2")
 library(igraph) ; packageVersion("igraph")
 library(ggraph) ; packageVersion("ggraph")
 library(tidygraph) ; packageVersion("tidygraph")
+library(pheatmap) ; packageVersion("pheatmap")
 
 ```
 
@@ -31,6 +36,12 @@ snps_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Micro
 
 snps_long_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/snp-dists/pairwise_snps_long.tsv"
 
+aln_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/snp-sites/Lpla.snp_sites.aln"
+
+tree_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/snp-sites/Lpla.snp_sites.aln"
+
+accessory_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/roary/gene_presence_absence.Rtab"
+  
 metadata_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/metadata.tsv"
 
 visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
@@ -166,7 +177,7 @@ ggsave(filename = "Lac_mutations_PCA_S103.png", plot = pca_S103_plot, path = vis
 ```
 
 
-```{r Heat maps}
+```{r Heat map S239}
 # S239
 
 # Create the annotation data frame
@@ -181,6 +192,16 @@ matrix_S239 <- as.matrix(snps_S239)
 nums_S239 <- apply(matrix_S239, c(1, 2), function(x) sprintf("%d", x))
 
 # Plot the heatmap using pheatmap
+pheatmap(matrix_S239, 
+         cluster_rows = TRUE, 
+         cluster_cols = TRUE, 
+         display_numbers = nums_S239, 
+         color = colorRampPalette(c("yellow", "purple"))(100),
+         main = "SNPs heatmap of the strain S239",
+         annotation_col = annotation_S239,
+         annotation_row = annotation_S239,
+         annotation_colors = list_colours)
+
 png(paste0(visuals_path,"/Lac_mutations_heat_S239.png"), width = 4000, height = 3000, res = 300)
 pheatmap(matrix_S239, 
          cluster_rows = TRUE, 
@@ -191,8 +212,11 @@ pheatmap(matrix_S239,
          annotation_col = annotation_S239,
          annotation_row = annotation_S239,
          annotation_colors = list_colours)
-dev.off
+dev.off()
 
+```
+
+```{r Heat map S103}
 # S103
 
 # Create the annotation data frame
@@ -207,6 +231,16 @@ matrix_S103 <- as.matrix(snps_S103)
 nums_S103 <- apply(matrix_S103, c(1, 2), function(x) sprintf("%d", x))
 
 # Plot the heatmap using pheatmap
+pheatmap(matrix_S103,
+         cluster_rows = TRUE,
+         cluster_cols = TRUE,
+         display_numbers = nums_S103, 
+         color = colorRampPalette(c("yellow", "purple"))(100),
+         main = "SNPs heatmap of the strain S103",
+         annotation_col = annotation_S103,
+         annotation_row = annotation_S103,
+         annotation_colors = list_colours)
+
 png(paste0(visuals_path,"/Lac_mutations_heat_S103.png"), width = 4000, height = 3000, res = 300)
 pheatmap(matrix_S103,
          cluster_rows = TRUE,
@@ -217,17 +251,146 @@ pheatmap(matrix_S103,
          annotation_col = annotation_S103,
          annotation_row = annotation_S103,
          annotation_colors = list_colours)
-dev.off
+dev.off()
 
 ```
+
+
+```{r Genes presence-absence plot S239}
+
+# Load the genes presence-absence matrix and set the gene names as row names
+accessory_S239 <- read.table(accessory_path, header = TRUE, check.names = FALSE) %>% 
+                                                          column_to_rownames("Gene") %>%
+                                                          select(all_of(isolates_S239)) %>% 
+                                                          filter(rowSums(. == 1) != ncol(.)) %>% 
+                                                          filter(rowSums(. == 0) != ncol(.))
+matrix_accessory_S239 <- as.matrix(accessory_S239)
+
+# Plot the heatmap using pheatmap
+pheatmap(matrix_accessory_S239, 
+         cluster_rows = TRUE, 
+         cluster_cols = TRUE, 
+         color = c("white", "black"),
+         main = "Accessory genes heatmap of the strain S239",
+         annotation_col = annotation_S239,
+         annotation_colors = list_colours,
+         legend = FALSE,
+         show_rownames = FALSE)
+
+png(paste0(visuals_path,"/Lac_accessory_heat_S239.png"), width = 4000, height = 3000, res = 300)
+pheatmap(matrix_accessory_S239, 
+         cluster_rows = TRUE, 
+         cluster_cols = TRUE, 
+         color = c("white", "black"),
+         main = "Accessory genes heatmap of the strain S239",
+         annotation_col = annotation_S239,
+         annotation_colors = list_colours,
+         legend = FALSE,
+         show_rownames = FALSE)
+dev.off()
+
+# We also calculate the pairwise distance between genomes
+pairwise_matrix_accessory_S239 <- as.matrix(dist(t(matrix_accessory_S239), method = "manhattan"))
+nums_accessory_S239 <- apply(pairwise_matrix_accessory_S239, c(1, 2), function(x) sprintf("%d", x))
+
+pheatmap(pairwise_matrix_accessory_S239, 
+         cluster_rows = TRUE, 
+         cluster_cols = TRUE, 
+         display_numbers = nums_accessory_S239, 
+         color = colorRampPalette(c("yellow", "purple"))(100),
+         main = "Accessory genes heatmap of the strain S239",
+         annotation_col = annotation_S239,
+         annotation_colors = list_colours,
+         legend = FALSE,
+         show_rownames = FALSE)
+
+```
+
+```{r Genes presence-absence plot S103}
+
+# Load the genes presence-absence matrix and set the gene names as row names
+accessory_S103 <- read.table(accessory_path, header = TRUE, check.names = FALSE) %>% 
+                                                          column_to_rownames("Gene") %>%
+                                                          select(all_of(isolates_S103)) %>% 
+                                                          filter(rowSums(. == 1) != ncol(.)) %>% 
+                                                          filter(rowSums(. == 0) != ncol(.))
+matrix_accessory_S103 <- as.matrix(accessory_S103)
+
+# Plot the heatmap using pheatmap
+pheatmap(matrix_accessory_S103, 
+         cluster_rows = TRUE, 
+         cluster_cols = TRUE, 
+         color = c("white", "black"),
+         main = "Accessory genes heatmap of the strain S103",
+         annotation_col = annotation_S103,
+         annotation_colors = list_colours,
+         legend = FALSE,
+         show_rownames = FALSE)
+
+png(paste0(visuals_path,"/Lac_accessory_heat_S103.png"), width = 4000, height = 3000, res = 300)
+pheatmap(matrix_accessory_S103, 
+         cluster_rows = TRUE, 
+         cluster_cols = TRUE, 
+         color = c("white", "black"),
+         main = "Accessory genes heatmap of the strain S103",
+         annotation_col = annotation_S103,
+         annotation_colors = list_colours,
+         legend = FALSE,
+         show_rownames = FALSE)
+dev.off()
+
+# We also calculate the pairwise distance between genomes
+pairwise_matrix_accessory_S103 <- as.matrix(dist(t(matrix_accessory_S103), method = "manhattan"))
+nums_accessory_S103 <- apply(pairwise_matrix_accessory_S103, c(1, 2), function(x) sprintf("%d", x))
+
+pheatmap(pairwise_matrix_accessory_S103, 
+         cluster_rows = TRUE, 
+         cluster_cols = TRUE, 
+         display_numbers = nums_accessory_S103, 
+         color = colorRampPalette(c("yellow", "purple"))(100),
+         main = "Accessory genes heatmap of the strain S103",
+         annotation_col = annotation_S103,
+         annotation_colors = list_colours,
+         legend = FALSE,
+         show_rownames = FALSE)
+
+```
+
+
+
 
 ```{r}
 
 
+# Load the MSA data
+aln <- readDNAStringSet(aln_path, format = "fasta")
+aln_S239 <- as.matrix(aln[names(aln) %in% isolates_S239])
+aln_S239 <- aln_S239[, !apply(aln_S239, 2, function(column) length(unique(column)) == 1)]
+aln_S239 <- as.data.frame(t(aln_S239))
+aln_S239$Position <- 1:nrow(aln_S239)
 
+# Melt the data frame for ggplot2
+aln_S239_long <- melt(aln_S239, id.vars = "Position", variable.name = "Genome", value.name = "Nucleotide")
+
+# Define a custom color palette for nucleotides
+nucleotide_colors <- c(
+  "A" = "green",
+  "C" = "blue",
+  "G" = "yellow",
+  "T" = "red",
+  "-" = "grey"  # For gaps
+)
+
+
+# Create the plot
+ggplot(aln_S239_long, aes(x = Position, y = Genome, fill = Nucleotide)) +
+  geom_tile() +
+  scale_fill_manual(values = nucleotide_colors) +
+  labs(title = "Multiple Sequence Alignment", x = "Position", y = "Genome") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 
 ```
-
 
 
