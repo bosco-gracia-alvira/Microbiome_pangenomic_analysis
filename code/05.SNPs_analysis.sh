@@ -94,7 +94,22 @@ anvi-script-reformat-fasta \
         "$REFERENCE"
 
 samtools faidx "$SNPS"/ref.fa
+
 conda deactivate
+
+# Annotate each graph pangenome with Bakta
+conda activate bakta
+export BAKTA_DB="/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/db/Bakta/db-light"
+
+echo "Annotating ${REPLY} with Bakta"
+
+bakta \
+    -p "${REPLY}.annotated" \
+    -o "$SNPS/bakta/" \
+    --species "${REPLY}" \
+    --threads 8 \
+    --keep-contig-headers \
+    "$SNPS"/ref.fa
 
 # Link the poolseq reads sets to the working directory
 for i in $(basename "$LOCATION_HOT"/F*)
@@ -215,12 +230,14 @@ bcftools view -h "$SNPS/temp_$REPLY.vcf" > "$SNPS/headers.txt"
 sed -i '' 's|./bams/||g; s|_sorted.bam||g' "$SNPS/headers.txt"
 bcftools reheader -h "$SNPS/headers.txt" -o "$SNPS/$REPLY.vcf" "$SNPS/temp_$REPLY.vcf"
 
+# Integrate the annotations into the vcf files mapped to the same reference pangenomes using snpeff
+vcf-annotator \
+    --output "$SNPS/${REPLY}_annotated.vcf" \
+    "$SNPS/$REPLY.vcf" \
+    "$SNPS/bakta/${REPLY}.annotated.gbff"
+
 # We extract the frequency of the SNPs in each sample
 bcftools query -H -f '%CHROM\t%POS\t%REF\t%ALT[\t%AD]\n' "$SNPS/$REPLY.vcf" > "$SNPS/$REPLY.freq"
-
-# We make a BED file that is used by PLINK to compute the PCA of the samples based on SNPs frequency
-# plink2 --vcf "$SNPS/${REPLY}.vcf" --double-id --allow-extra-chr --make-bed --out "$SNPS/${REPLY}"
-# plink2 --bfile "$SNPS/${REPLY}" --double-id --allow-extra-chr --pca --out "$SNPS/${REPLY}"
 
 rm "$SNPS/temp_$REPLY.vcf"
 
@@ -230,6 +247,3 @@ rm -r "${LOCAL:?}/${REPLY:?}"
 
 # This script plots the PCA of the samples based on the SNPs frequency
 Rscript "$WORKDIR"/../code/05.SNPs_plotting.Rmd "$REPLY"
-
-# This is another way of rendering an Rmd file according to copilot
-#Rscript -e "rmarkdown::render("$WORKDIR"/../code/05.SNPs_plotting.Rmd, params = list(species = '$REPLY'))"
