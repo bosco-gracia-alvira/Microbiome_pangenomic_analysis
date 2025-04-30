@@ -1,0 +1,405 @@
+---
+title: "SNPs_plotting"
+author: "Bosco Gracia Alvira"
+date: "2024-07-25"
+output: html_document
+---
+
+
+```{r Loading packages}
+knitr::opts_knit$set(root.dir = paste0("/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/SNPs_analysis"))
+
+library(lattice)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(stringr)
+library(VariantAnnotation)
+library(qvalue)
+library(gggenomes) ; packageVersion("gggenomes")
+library(GenomicRanges) ; packageVersion("GenomicRanges")
+
+
+```
+
+```{r Loading the data}
+
+# Paths to the files that we want to import
+data_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/SNPs_analysis"
+metadata_isolates_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/data/Lactiplantibacillus_plantarum/Pangenomic_strains/metadata.tsv"
+visuals_path <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/visuals"
+
+# Read the vcf files with and without annotations
+vcf <- readVcf(paste0(data_path,"/Lactiplantibacillus_plantarum_annotated.vcf"))
+
+# Read the allele frequency data from each sample
+AD_df <- as.data.frame(geno(vcf)$AD)
+AD_df$rowname <- row.names(AD_df)
+AD_df <- AD_df %>%
+          separate(rowname, into = c("CHROM","POS_REF_ALT"), sep = ":") %>%
+          separate(POS_REF_ALT, into = c("POS","REF_ALT"), sep = "_", extra = "merge") %>%
+          separate(REF_ALT, into = c("REF", "ALT"), sep = "/") %>%
+          dplyr::select(CHROM, POS, REF, ALT, everything())
+          
+
+# Remove four isolates that I know that are contaminated and have intermediate allele frequencies
+AD_df <- AD_df %>%
+  dplyr::select(-X79_1_contigs, -X81_1_contigs, -X595_1_contigs, -X371_1_contigs)
+colnames(AD_df) <- sub("_.*", "", colnames(AD_df))
+
+```
+
+
+```{r Process the frequency table}
+
+# Transform the data into a data.table and melt the dataframe to long format
+AD_df <- as.data.table(AD_df)
+freq_long <- data.table::melt(AD_df, id.vars = colnames(AD_df)[1:4], variable.name = "Sample", value.name = "AF")
+
+# Split the AF column into reference (RO) and alternative (AF)
+freq_long <- freq_long %>%
+  mutate(RF = map_int(AF, 1),
+         AF = map_int(AF, 2))
+
+# Calculate the summed allele depth (SAD) and relative frequencies from absolute number of counts
+freq_long <- freq_long[, "SAD" := (RF + AF)]
+freq_long <- freq_long[, `:=`(RF = RF / (RF + AF), AF = AF / (RF + AF))]
+
+# Create a new column with unique position information
+freq_long <- freq_long %>%
+  mutate(CHROM_POS = paste0(CHROM,":",POS))
+
+# Make the table wide again
+freq_wide <- freq_long %>%
+  dplyr::select(Sample, CHROM_POS, RF) %>%  # Select relevant columns
+  pivot_wider(names_from = CHROM_POS, values_from = RF) %>%  # Pivot to wide format
+  column_to_rownames(var = "Sample")  # Set Sample as row names
+
+# Remove the columns (SNPs) that are NaN in at least 1 sample
+rows_freq <- row.names(freq_wide)
+freq_wide <- as.data.table(freq_wide)
+freq_wide <- freq_wide[, lapply(.SD, function(x) if (any(is.nan(x))) NULL else x), .SDcols = names(freq_wide)]
+freq_wide <- as.data.frame(freq_wide)
+row.names(freq_wide) <- rows_freq
+snps <- as.numeric(ncol(freq_wide))
+
+# Transform data to arcosin
+freq_asin <- 2*asin(sqrt(freq_wide))
+
+```
+
+
+```{r Import metadata}
+
+# Import the metadata of all the isolates and subset those present in the PCA
+metadata_isolates <- fread(metadata_isolates_path, header=T)
+metadata_isolates <- metadata_isolates %>%
+                        dplyr::select(Strain,Temperature,Generation,Genotype) %>%
+                        dplyr::rename(Sample = Strain)
+
+```
+
+
+```{r Annotation of SNPs}
+
+# Read the annotations for each variant and select the columns of interest
+annotation_df <- as.data.frame(info(vcf))
+annotation_df <- annotation_df %>%
+                      dplyr::select(IsSynonymous,IsTransition,IsGenic,AminoAcidChange,Gene,Product) %>%
+                      rownames_to_column(var = "CHROM_POS") %>%
+                      mutate(ntChange=str_sub(CHROM_POS, -3, -1)) %>% 
+                      mutate(CHROM_POS=str_sub(CHROM_POS, 1, -5)) %>% 
+                      mutate(across(where(is.list), ~ map_chr(., as.character)))
+            
+annotated_variants <- merge(freq_long, annotation_df, by="CHROM_POS")
+meta_snps <- merge(annotated_variants, metadata_isolates, by="Sample") %>% filter(RF != "NaN")
+
+```
+
+
+```{r Identify genotype-specific SNPs}
+
+# Proportion of the genomes from each strain that has the SNP
+p <- meta_snps %>%
+  group_by(CHROM_POS, Genotype, Gene, Product) %>%
+  summarize(p = mean(RF, na.rm = TRUE)) %>%
+  pivot_wider(names_from = Genotype, values_from = p, names_prefix = "p_")
+
+# Number of genomes per strain
+N <- meta_snps %>%
+  group_by(CHROM_POS, Genotype, Gene, Product) %>%
+  summarize(N = n()) %>%
+  pivot_wider(names_from = Genotype, values_from = N, names_prefix = "N_")
+
+# Expected proportion of genomes that should contain the SNP under a uniform distribution (null expectation)
+E <- meta_snps %>%
+  mutate(Presence = if_else(RF > 0.5, 1, 0)) %>%
+  group_by(CHROM_POS) %>%
+  summarize(E = mean(Presence))
+
+# Join the three tables and calculate the associated_groups to each SNP, that don't follow the null expectation
+# Some SNPs are not covered in all the genomes (they are indels in some), so these I remove them as well
+pN <- p %>%
+  left_join(N, by = c("CHROM_POS", "Product")) %>%
+  rowwise() %>%
+  left_join(E, by = "CHROM_POS") %>% 
+  mutate(associated_groups = paste(names(dplyr::select(cur_data(),
+        starts_with("p_")))[which(c_across(starts_with("p_")) > E)],
+        collapse = ",")) %>%
+  ungroup() %>%
+  dplyr::select(-E) %>%
+  dplyr::mutate(accession = CHROM_POS) %>% 
+  dplyr::select(CHROM_POS, accession, Product, associated_groups, p_B89, N_B89, p_S239, N_S239, p_S103, N_S103) %>% 
+  drop_na()
+
+# Save the file
+write_tsv(pN, "~/pN.tsv")
+
+enrichment_script <- "/Users/bgracia/PopGen Dropbox/Martin McFly/Bosco/PhD_Dropbox/Microbiome_pangenomic_analysis/code/anvi-script-enrichment-stats"
+
+args <- c(paste0("--input=~/pN.tsv"), "--output=~/enriched_SNPs.tsv")
+system2(enrichment_script, args)
+
+enriched_snps <- fread("~/enriched_SNPs.tsv", header=T)
+enriched_snps <- enriched_snps %>% 
+                    mutate(adjusted_q_value = as.numeric(adjusted_q_value)) %>% 
+                    filter(adjusted_q_value <= 0.05) %>%
+                    dplyr::select(-accession,-Product) %>% 
+                    left_join(annotation_df, by = "CHROM_POS")
+
+# Now we have our enriched table. We can remove the input and output from the home directory
+system2("rm", c("~/pN.tsv", "~/enriched_SNPs.tsv"))
+
+# For each SNP we want to turn the private allele into the reference one
+# To do this we have to modify several fields of the table for the SNPs that are associated with two groups:
+
+# This function swaps the last character with the last third character (reference and alternative alleles CHROM_POS)
+swap_nt <- function(x) {
+  ref <- str_sub(x, 1, 1)
+  alt <- str_sub(x, 3, 3)
+  str_sub(x, 3, 3) <- ref
+  str_sub(x, 1, 1) <- alt
+  x
+}
+
+swap_aa <- function(x) {
+  ref <- str_sub(x, 1, 1)
+  alt <- str_sub(x, -1, -1)
+  str_sub(x, 1, 1) <- alt
+  str_sub(x, -1, -1) <- ref
+  x
+}
+
+transform_associated_groups <- function(groups) {
+  case_when(
+    groups == "p_B89,p_S103" ~ "p_S239",
+    groups == "p_B89,p_S239" ~ "p_S103",
+    groups == "p_S103,p_S239" ~ "p_B89",
+    groups == "p_B89,p_S103,p_S239" ~ "ALL",
+    TRUE ~ groups
+  )
+}
+
+# Modify the columns as specified
+enriched_snps_2 <- enriched_snps %>%
+  mutate(
+    ntChange = if_else(str_detect(associated_groups, ","), swap_nt(ntChange), ntChange),
+    AminoAcidChange = if_else(str_detect(associated_groups, ","), swap_aa(AminoAcidChange), AminoAcidChange),
+    p_B89 = if_else(str_detect(associated_groups, ","), abs(p_B89 - 1), p_B89),
+    p_S239 = if_else(str_detect(associated_groups, ","), abs(p_S239 - 1), p_S239),
+    p_S103 = if_else(str_detect(associated_groups, ","), abs(p_S103 - 1), p_S103),
+    inversed = if_else(str_detect(associated_groups, ","), "inv", NA),
+    associated_groups = transform_associated_groups(associated_groups),
+    Colour = case_when(
+                          associated_groups=="p_B89" ~ "green",
+                          associated_groups=="p_S239" ~ "red",
+                          associated_groups=="p_S103"~ "blue"),
+    CHROM=str_replace(CHROM_POS,":[:alnum:]*",""),
+    POS=as.numeric(str_replace(CHROM_POS,"c_[:alnum:]*:",""))
+  )
+
+enriched_snps_2 %>%
+  summarise(na_count = sum(is.na(Colour)))
+
+enriched_snps_2 %>%
+  filter((associated_groups == "p_B89" | associated_groups == "p_S103,p_S239"), IsGenic==1) %>%
+  summarise(count = n())
+
+enriched_snps_2 %>%
+  filter((associated_groups == "p_S103" | associated_groups == "p_B89,p_S239"), IsGenic==1) %>%
+  summarise(count = n())
+
+enriched_snps_2 %>%
+  filter((associated_groups == "p_S239" | associated_groups == "p_B89,p_S103"), IsSynonymous==0) %>%
+  summarise(count = n())
+
+# Save the file
+write_tsv(enriched_snps_2, paste0(data_path,"/enriched_snps.tsv"))
+
+```
+
+```{r Calculate gene divergence per strain}
+
+# We import the gene annotations from the reference genome
+gff <- read_gff3(paste0(data_path,"/bakta/Lactiplantibacillus_plantarum.annotated.gff3"))
+
+genes <- gff %>%
+  dplyr::filter(type == "CDS") %>%
+  dplyr::select(seq_id, start, end, locus_tag)
+
+genes_gr <- GRanges(seqnames = gff$seq_id,
+                    ranges = IRanges(start = gff$start, end = gff$end),
+                    gene = gff$locus_tag)  # Adjust based on your GFF3 file
+
+# Convert SNP data into GenomicRanges object
+snps_gr <- GRanges(seqnames = enriched_snps_2$CHROM,
+                   ranges = IRanges(start = enriched_snps_2$POS, end = enriched_snps_2$POS),
+                   snp_id = enriched_snps_2$CHROM_POS)  # Add SNP IDs if needed
+
+# Step 4: Find overlaps between SNPs and genes
+overlaps <- findOverlaps(snps_gr, genes_gr)
+
+# Step 5: Annotate the SNPs with gene information
+# Initialize a column to store gene annotations
+enriched_snps_2$gene <- NA
+
+# Assign gene information to the SNPs that overlap
+enriched_snps_2$gene[queryHits(overlaps)] <- genes_gr$gene[subjectHits(overlaps)]
+
+
+B89_snps <- enriched_snps_2 %>%
+  filter(associated_groups == "p_B89" &
+         IsSynonymous == "0" &
+         p_B89 > 0.9 &
+         p_S239 < 0.05 &
+         p_S103 < 0.05) %>% 
+  left_join(genes, by = join_by(gene == locus_tag)) %>% 
+  mutate(length = end-start) %>% 
+  group_by(gene) %>%
+  summarise(divergence = n()/length) %>% 
+  unique() %>% 
+  left_join(gff, by = join_by(gene == locus_tag)) %>% 
+  dplyr::select(c(gene,divergence,product,gene.y)) %>% 
+  arrange(desc(divergence))
+
+write_tsv(B89_snps, paste0(data_path,"/B89_snps.tsv"))
+
+S103_snps <- enriched_snps_2 %>%
+  filter(associated_groups == "p_S103" &
+         IsSynonymous == "0" &
+         p_S103 > 0.9 &
+         p_S239 < 0.05 &
+         p_B89 < 0.05) %>% 
+  left_join(genes, by = join_by(gene == locus_tag)) %>% 
+  mutate(length = end-start) %>% 
+  group_by(gene) %>%
+  summarise(divergence = n()/length) %>% 
+  unique() %>% 
+  left_join(gff, by = join_by(gene == locus_tag)) %>% 
+  dplyr::select(c(gene,divergence,product,gene.y)) %>% 
+  arrange(desc(divergence))
+
+write_tsv(S103_snps, paste0(data_path,"/S103_snps.tsv"))
+
+S239_snps <- enriched_snps_2 %>%
+  filter(associated_groups == "p_S239" &
+         IsSynonymous == "0" &
+         p_S239 > 0.9 &
+         p_S103 < 0.05 &
+         p_B89 < 0.05) %>% 
+  left_join(genes, by = join_by(gene == locus_tag)) %>% 
+  mutate(length = end-start) %>% 
+  group_by(gene) %>%
+  summarise(divergence = n()/length) %>% 
+  unique() %>% 
+  left_join(gff, by = join_by(gene == locus_tag)) %>% 
+  dplyr::select(c(gene,divergence,product,gene.y)) %>% 
+  arrange(desc(divergence)) 
+
+write_tsv(S239_snps, paste0(data_path,"/S239_snps.tsv"))
+
+```
+
+
+```{r Calculate SNP density per strain}
+
+# We import the gene annotations from the reference genome
+gff <- read_gff3(paste0(data_path,"/bakta/Lactiplantibacillus_plantarum.annotated.gff3"))
+
+genes <- gff %>%
+  dplyr::filter(type == "CDS") %>%
+  dplyr::select(seq_id, start, end, locus_tag)
+
+genes_gr <- GRanges(seqnames = gff$seq_id,
+                    ranges = IRanges(start = gff$start, end = gff$end),
+                    gene = gff$locus_tag)  # Adjust based on your GFF3 file
+
+# Convert SNP data into GenomicRanges object
+snps_gr <- GRanges(seqnames = enriched_snps_2$CHROM,
+                   ranges = IRanges(start = enriched_snps_2$POS, end = enriched_snps_2$POS),
+                   snp_id = enriched_snps_2$CHROM_POS)  # Add SNP IDs if needed
+
+# Step 4: Find overlaps between SNPs and genes
+overlaps <- findOverlaps(snps_gr, genes_gr)
+
+# Step 5: Annotate the SNPs with gene information
+# Initialize a column to store gene annotations
+enriched_snps_2$gene <- NA
+
+# Assign gene information to the SNPs that overlap
+enriched_snps_2$gene[queryHits(overlaps)] <- genes_gr$gene[subjectHits(overlaps)]
+
+
+B89_snps <- enriched_snps_2 %>%
+  filter(associated_groups == "p_B89" &
+         IsSynonymous == "0" &
+         p_B89 > 0.9 &
+         p_S239 < 0.05 &
+         p_S103 < 0.05) %>% 
+  left_join(genes, by = join_by(gene == locus_tag)) %>% 
+  mutate(length = end-start) %>% 
+  group_by(gene) %>%
+  summarise(divergence = n()/length) %>% 
+  unique() %>% 
+  left_join(gff, by = join_by(gene == locus_tag)) %>% 
+  dplyr::select(c(gene,divergence,product,gene.y)) %>% 
+  arrange(desc(divergence))
+
+write_tsv(B89_snps, paste0(data_path,"/B89_snps.tsv"))
+
+S103_snps <- enriched_snps_2 %>%
+  filter(associated_groups == "p_S103" &
+         IsSynonymous == "0" &
+         p_S103 > 0.9 &
+         p_S239 < 0.05 &
+         p_B89 < 0.05) %>% 
+  left_join(genes, by = join_by(gene == locus_tag)) %>% 
+  mutate(length = end-start) %>% 
+  group_by(gene) %>%
+  summarise(divergence = n()/length) %>% 
+  unique() %>% 
+  left_join(gff, by = join_by(gene == locus_tag)) %>% 
+  dplyr::select(c(gene,divergence,product,gene.y)) %>% 
+  arrange(desc(divergence))
+
+write_tsv(S103_snps, paste0(data_path,"/S103_snps.tsv"))
+
+S239_snps <- enriched_snps_2 %>%
+  filter(associated_groups == "p_S239" &
+         IsSynonymous == "0" &
+         p_S239 > 0.9 &
+         p_S103 < 0.05 &
+         p_B89 < 0.05) %>% 
+  left_join(genes, by = join_by(gene == locus_tag)) %>% 
+  mutate(length = end-start) %>% 
+  group_by(gene) %>%
+  summarise(divergence = n()/length) %>% 
+  unique() %>% 
+  left_join(gff, by = join_by(gene == locus_tag)) %>% 
+  dplyr::select(c(gene,divergence,product,gene.y)) %>% 
+  arrange(desc(divergence)) 
+
+write_tsv(S239_snps, paste0(data_path,"/S239_snps.tsv"))
+
+```
