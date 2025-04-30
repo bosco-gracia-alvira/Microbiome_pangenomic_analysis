@@ -60,6 +60,7 @@ anvi-run-workflow -w pangenomics \
 anvi-import-misc-data \
         "$WORKDIR"/$REPLY/Anvio_pangen/Anvio_misc.tsv \
         -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-PAN.db \
+        --just-do-it \
         -t layers
 
 # Phylogenomic tree of the species
