@@ -100,12 +100,20 @@ anvi-import-misc-data \
 
 # Test if there are functional differences between the genomes from each temperature regime
 mkdir -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/Functional_enrichment
+
+if [[ "$REPLY" != "Lactiplantibacillus_plantarum" ]]
+then
+    category="Temperature"
+else
+    category="Genotype"
+fi
+
 for i in {COG20_FUNCTION,Pfam,KEGG_Module,KOfam,COG20_PATHWAY,KEGG_Class,COG20_CATEGORY}
 do      
         anvi-compute-functional-enrichment-in-pan \
         -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-PAN.db \
         -g "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-GENOMES.db \
-        --category-variable Temperature \
+        --category-variable $category \
         --annotation-source "${i}" \
         -o "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/Functional_enrichment/"${i}"-enrichment.txt \
         >> "$WORKDIR"/"$REPLY"/Anvio_pangen/00_LOGS/MYPAN-anvi_enrichment.log 2>&1
