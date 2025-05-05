@@ -27,7 +27,7 @@
     },
     "anvi_run_kegg_kofams": {
         "run": true,
-        "threads": 4,
+        "threads": 8,
         "--kegg-data-dir": "",
         "--hmmer-program": "",
         "--keep-all-hits": "",
