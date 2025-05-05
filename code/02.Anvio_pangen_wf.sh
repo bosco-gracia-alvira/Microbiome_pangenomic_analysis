@@ -58,8 +58,8 @@ anvi-run-workflow -w pangenomics \
 
 # Import the misc data that was created in 01.Gen_tables.sh
 anvi-import-misc-data \
-        "$WORKDIR"/$REPLY/Anvio_pangen/Anvio_misc.tsv \
-        -p "$WORKDIR"/"$REPLY"/Anvio_pangen/03_PAN/MYPAN-PAN.db \
+        "$WORKDIR/$REPLY/Anvio_pangen/Anvio_misc.tsv" \
+        -p "$WORKDIR/$REPLY/Anvio_pangen/03_PAN/MYPAN-PAN.db" \
         --just-do-it \
         -t layers
 
