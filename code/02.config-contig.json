@@ -26,7 +26,7 @@
         "--hmm-profile-dir": ""
     },
     "anvi_run_kegg_kofams": {
-        "run": false,
+        "run": true,
         "threads": 8,
         "--kegg-data-dir": "",
         "--hmmer-program": "",
